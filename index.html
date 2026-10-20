@@ -22,6 +22,11 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
 
+    <!-- Global Watermark -->
+    <div class="fixed bottom-1.5 right-3 z-[9999] text-[10px] text-slate-400/70 pointer-events-none font-medium tracking-wide">
+        Created by Lorain Kotze. Powered by Gemini.
+    </div>
+
     <!-- Login View Overlay -->
     <div id="login-view" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center transition-opacity">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-slate-200">
@@ -89,7 +94,7 @@
         </div>
     </aside>
 
-    <main id="app-main" class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
+    <main id="app-main" class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative z-10">
         <!-- Topbar for Mobile -->
         <header class="md:hidden h-16 bg-slate-900 text-white flex items-center px-4 justify-between shadow-md">
             <h1 class="font-bold">Call Cycle Tracker</h1>
@@ -413,9 +418,8 @@
             messagingSenderId: "697360208233",
             appId: "1:697360208233:web:d4a14da5b7acd9577b6df8"
         };
-        const appId = 'call-cycle-tracker'; // Unique identifier for the database path
+        const appId = 'call-cycle-tracker'; 
 
-        // Core Application State
         const state = {
             currentProfile: null,
             masterData: [],
@@ -430,7 +434,6 @@
 
         let db, auth;
 
-        // --- Firebase Initialization ---
         async function initFirebase() {
             if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
                 ui.setStatus("Local Mode (Setup Firebase Keys)", "text-orange-500");
@@ -440,26 +443,19 @@
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-
-                // We use anonymous auth to establish a secure DB session without requiring user sign-ups
                 await signInAnonymously(auth);
                 state.user = auth.currentUser;
-                
                 ui.setStatus("Connected to Database", "text-green-500");
                 state.dbReady = true;
 
-                // Load active session profile
                 const savedProfile = localStorage.getItem('callCycleProfile');
-                if (savedProfile) {
-                    ui.loginWithProfile(savedProfile);
-                }
+                if (savedProfile) ui.loginWithProfile(savedProfile);
             } catch (err) {
                 console.error("Firebase Init Error:", err);
                 ui.setStatus("DB Connection Failed", "text-red-500");
             }
         }
 
-        // --- Data Layer (Firebase) ---
         const MAPPINGS_PATH = `artifacts/${appId}/public/data/employee_mappings`;
         const MASTER_PATH = `artifacts/${appId}/public/data/master_data_chunks`;
         const HISTORY_PATH = `artifacts/${appId}/public/data/recon_history`;
@@ -472,20 +468,13 @@
                 const snapshot = await getDocs(q);
                 let chunks = [];
                 let loadedClient = 'TBFSIR';
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    chunks.push(data);
-                    if(data.client) loadedClient = data.client;
-                });
+                snapshot.forEach(doc => { const data = doc.data(); chunks.push(data); if(data.client) loadedClient = data.client; });
                 if (chunks.length > 0) {
                     chunks.sort((a,b) => a.index - b.index);
-                    const fullText = chunks.map(c => c.chunk).join('');
-                    document.getElementById('paste-actuals').value = fullText;
+                    document.getElementById('paste-actuals').value = chunks.map(c => c.chunk).join('');
                     const radio = document.querySelector(`input[name="client"][value="${loadedClient}"]`);
                     if(radio) radio.checked = true;
-                } else {
-                    document.getElementById('paste-actuals').value = '';
-                }
+                } else document.getElementById('paste-actuals').value = '';
             } catch (e) { console.error("Load Workspace:", e); }
         }
 
@@ -501,8 +490,7 @@
                 const chunkSize = 500000;
                 let chunkIndex = 0;
                 for (let i = 0; i < text.length; i += chunkSize) {
-                    const docRef = doc(colRef, `chunk_${chunkIndex}`);
-                    batch.set(docRef, { chunk: text.slice(i, i + chunkSize), client, index: chunkIndex });
+                    batch.set(doc(colRef, `chunk_${chunkIndex}`), { chunk: text.slice(i, i + chunkSize), client, index: chunkIndex });
                     chunkIndex++;
                 }
                 if(text.length === 0) batch.set(doc(colRef, `chunk_0`), { chunk: '', client, index: 0 });
@@ -532,9 +520,7 @@
                 const q = collection(db, MASTER_PATH);
                 const snapshot = await getDocs(q);
                 let loaded = [];
-                snapshot.forEach(doc => {
-                    if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk));
-                });
+                snapshot.forEach(doc => { if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk)); });
                 state.masterData = loaded;
                 ui.renderMasterTable();
             } catch (e) { console.error("Load Master:", e); }
@@ -553,8 +539,7 @@
 
                 const chunkSize = 500;
                 for (let i = 0; i < state.masterData.length; i += chunkSize) {
-                    const chunk = state.masterData.slice(i, i + chunkSize);
-                    await addDoc(collection(db, MASTER_PATH), { chunk: JSON.stringify(chunk) });
+                    await addDoc(collection(db, MASTER_PATH), { chunk: JSON.stringify(state.masterData.slice(i, i + chunkSize)) });
                 }
                 ui.showToast("Master data saved successfully.", "success");
             } catch (e) {
@@ -568,18 +553,9 @@
             if (!state.dbReady || !state.user || !state.currentProfile) return;
             try {
                 await addDoc(collection(db, HISTORY_PATH), {
-                    date: new Date().toISOString(),
-                    client: summary.client,
-                    profile: state.currentProfile,
-                    processedBy: state.currentProfile,
-                    expected: summary.expected,
-                    matched: summary.matched,
-                    missing: summary.missing,
-                    unexpected: summary.unexpected,
-                    wrongDay: summary.wrongDay,
-                    review: summary.review,
-                    userId: state.user.uid,
-                    fullResults: JSON.stringify(fullResults)
+                    date: new Date().toISOString(), client: summary.client, profile: state.currentProfile, processedBy: state.currentProfile,
+                    expected: summary.expected, matched: summary.matched, missing: summary.missing, unexpected: summary.unexpected,
+                    wrongDay: summary.wrongDay, review: summary.review, userId: state.user.uid, fullResults: JSON.stringify(fullResults)
                 });
                 await loadHistory();
             } catch (e) { console.error("Save History Error:", e); }
@@ -598,23 +574,17 @@
             } catch (e) { console.error("Load History:", e); }
         }
 
-        // --- Logic Engine ---
         const engine = {
             parseTSV(text, reqHeaders = []) {
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
                 if (lines.length < 2) throw new Error("Not enough data. Headers or rows are missing.");
                 const headers = lines[0].split('\t').map(h => h.trim());
-                
                 const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
                 if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
-
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
                     const cols = lines[i].split('\t');
-                    let row = {};
-                    headers.forEach((h, idx) => {
-                        row[h] = cols[idx] ? cols[idx].trim() : '';
-                    });
+                    let row = {}; headers.forEach((h, idx) => { row[h] = cols[idx] ? cols[idx].trim() : ''; });
                     data.push(row);
                 }
                 return data;
@@ -626,10 +596,7 @@
                 return s.length > 0 && s.toLowerCase() !== 'null' && s !== 'undefined' ? s : null;
             },
 
-            normalizeText(str) {
-                if (!str) return '';
-                return str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-            },
+            normalizeText(str) { return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
 
             parseDate(dateStr) {
                 if (!dateStr) return null;
@@ -639,7 +606,6 @@
                 }
                 let d = new Date(dateStr);
                 if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                
                 const parts = String(dateStr).split(/[\/\-]/);
                 if (parts.length === 3 && parts[2].length === 4) {
                     d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
@@ -664,89 +630,73 @@
                 return targetDate;
             },
 
-            formatDate(dateObj) {
-                return dateObj ? dateObj.toISOString().split('T')[0] : '';
-            },
-            
-            getDayNumber(weekDayStr) {
-                return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0;
-            },
+            formatDate(dateObj) { return dateObj ? dateObj.toISOString().split('T')[0] : ''; },
+            getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
 
             run(actuals, client, expectedPool) {
                 const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
-                
-                // Identify dynamic category header
-                let catHeader = 'category';
+                let catHeader = 'category', loginHeader = 'loginId';
                 if(actuals.length > 0) {
                     const keys = Object.keys(actuals[0]);
-                    const found = keys.find(k => /category/i.test(k));
-                    if(found) catHeader = found;
+                    const foundCat = keys.find(k => /category/i.test(k)); if(foundCat) catHeader = foundCat;
+                    const foundLog = keys.find(k => /loginid|userid/i.test(k)); if(foundLog) loginHeader = foundLog;
                 }
 
-                const actualVisits = new Map();
+                const actualVisitsByCode = new Map();
                 
-                // Step 1: Process Actuals into Unique Store Visits
                 actuals.forEach(act => {
                     let codeVal = this.normalizeCode(act.storeCode || act.StoreCode);
-                    const id = codeVal !== null ? 'CODE_' + codeVal : 'INVALID_ACT_' + Math.random();
+                    if (!codeVal) return;
                     
                     const parsedDate = this.parseDate(act.Date);
                     const dateStr = parsedDate ? this.formatDate(parsedDate) : 'UnknownDate';
-                    const visitKey = `${id}_${dateStr}`;
+                    const visitKey = `${codeVal}_${dateStr}`;
                     
-                    if (!actualVisits.has(visitKey)) {
-                        actualVisits.set(visitKey, {
-                            storeCodeKey: id,
-                            originalStoreCode: act.storeCode || act.StoreCode || '',
-                            isValidCode: codeVal !== null,
+                    if (!actualVisitsByCode.has(visitKey)) {
+                        actualVisitsByCode.set(visitKey, {
+                            storeCode: codeVal,
                             storeName: act.storeName || act.StoreName || '',
                             dateStr: dateStr,
                             parsedDate: parsedDate,
                             rawCount: 0,
                             loginIds: new Set(),
                             mappedEmps: new Set(),
-                            categories: new Map(),
+                            categories: new Set(),
                             matchedToPlanned: false
                         });
                     }
-                    const v = actualVisits.get(visitKey);
+                    const v = actualVisitsByCode.get(visitKey);
                     v.rawCount++;
                     
-                    const login = act.loginId || act.loginID || act.userid || 'Unknown';
+                    const login = act[loginHeader] || 'Unknown';
                     v.loginIds.add(login);
                     const mapped = state.mappings[login];
                     if (mapped) v.mappedEmps.add(mapped);
                     
-                    let cat = act[catHeader] || 'Unclassified';
-                    cat = cat.toString().trim().replace(/\s+/g, ' ');
-                    let ticket = act.ticketNo || act.activityid || act.Imageurl || `row_${v.rawCount}`;
-                    
-                    if (!v.categories.has(cat)) v.categories.set(cat, new Set());
-                    v.categories.get(cat).add(ticket);
+                    let cat = act[catHeader];
+                    if(cat) v.categories.add(cat.toString().trim().replace(/\s+/g, ' '));
                 });
 
-                // Step 2: Match Expected to Actuals using EXACT STORE CODE ONLY
                 expectedPool.forEach(exp => {
                     const codeVal = this.normalizeCode(exp.AS400StoreCode);
-                    const id = codeVal !== null ? 'CODE_' + codeVal : 'INVALID_EXP_' + Math.random();
                     exp._isValidCode = codeVal !== null;
                     const expectedDateStr = exp._ExpectedDateStr;
                     
-                    const exactMatchKey = `${id}_${expectedDateStr}`;
-                    const exactMatch = actualVisits.get(exactMatchKey);
-                    
-                    if (exactMatch && exp._isValidCode) {
-                        exp._matchedVisit = exactMatch;
-                        exp._matchType = 'EXACT';
-                        exactMatch.matchedToPlanned = true;
+                    if(exp._isValidCode) {
+                        const exactMatchKey = `${codeVal}_${expectedDateStr}`;
+                        const exactMatch = actualVisitsByCode.get(exactMatchKey);
+                        if (exactMatch) {
+                            exp._matchedVisit = exactMatch;
+                            exp._matchType = 'EXACT';
+                            exactMatch.matchedToPlanned = true;
+                        }
                     }
                 });
                 
-                // Step 3: Find Wrong Day matches based solely on STORE CODE
                 expectedPool.forEach(exp => {
                     if (exp._matchedVisit || !exp._isValidCode) return;
-                    const id = 'CODE_' + this.normalizeCode(exp.AS400StoreCode);
-                    const availableVisits = Array.from(actualVisits.values()).filter(v => v.storeCodeKey === id && !v.matchedToPlanned);
+                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
+                    const availableVisits = Array.from(actualVisitsByCode.values()).filter(v => v.storeCode === codeVal && !v.matchedToPlanned);
                     if (availableVisits.length > 0) {
                         const wrongDayMatch = availableVisits[0];
                         exp._matchedVisit = wrongDayMatch;
@@ -755,7 +705,6 @@
                     }
                 });
 
-                // Step 4: Generate Results
                 expectedPool.forEach(exp => {
                     const expDateParsed = this.parseDate(exp._ExpectedDateStr);
                     const monthStr = expDateParsed ? expDateParsed.toLocaleString('en-US', {month: 'long', year: 'numeric'}) : 'Unknown Month';
@@ -779,7 +728,6 @@
                     } else {
                         const actV = exp._matchedVisit;
                         const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
-                        
                         const categoryCount = actV.categories.size > 0 ? actV.categories.size.toString() : '-';
                         
                         let isEmpMatch = false;
@@ -793,14 +741,13 @@
                             ActualDay: actDayName,
                             CategoriesCaptured: categoryCount,
                             loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
-                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', '),
-                            RawRowsCount: actV.rawCount
+                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', ')
                         };
 
                         if (exp._matchType === 'WRONG_DAY') {
                             results.wrongDay.push({ ...rec, Status: 'CAPTURED, ON WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
                         } else if (actV.mappedEmps.size === 0) {
-                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping needs review).' });
+                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping unknown).' });
                         } else if (!isEmpMatch) {
                             results.wrongDay.push({ ...rec, Status: 'SCHEDULE DISCREPANCY', DiscrepancyReason: `Captured on schedule, but by wrong employee.` });
                         } else {
@@ -809,28 +756,18 @@
                     }
                 });
                 
-                // Step 5: Unexpected captures
-                actualVisits.forEach(v => {
+                actualVisitsByCode.forEach(v => {
                     if (!v.matchedToPlanned) {
                         const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
                         const categoryCount = v.categories.size > 0 ? v.categories.size.toString() : '-';
 
                         const actRec = {
                             ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
-                            storeCode: v.originalStoreCode,
-                            storeName: v.storeName,
-                            ExpectedEmployee: '-',
-                            ActualDate: v.dateStr,
-                            ActualDay: actDayName,
-                            CategoriesCaptured: categoryCount,
-                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown',
-                            Client: client
+                            storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
+                            ActualDate: v.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
+                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client
                         };
-                        if (!v.isValidCode) {
-                            results.review.push({ ...actRec, Status: 'NEEDS REVIEW', DiscrepancyReason: 'IR report row missing valid storeCode.' });
-                        } else {
-                            results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
-                        }
+                        results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
                     }
                 });
 
@@ -838,7 +775,6 @@
             }
         };
 
-        // --- UI Layer ---
         window.ui = {
             currentTab: 'tab-missing',
             tablePage: 1,
@@ -855,10 +791,8 @@
                 const sel = document.getElementById('profile-select').value;
                 if (!sel) return this.showToast("Select a profile to log in.", "error");
 
-                if (sel === 'Admin') {
-                    if (document.getElementById('admin-password').value !== 'Cycle1') {
-                        return this.showToast("Incorrect Admin password.", "error");
-                    }
+                if (sel === 'Admin' && document.getElementById('admin-password').value !== 'Cycle1') {
+                    return this.showToast("Incorrect Admin password.", "error");
                 }
                 this.loginWithProfile(sel);
             },
@@ -1072,7 +1006,6 @@
             }
         };
 
-        // --- Controller ---
         window.app = {
             clearWorkspaceData() {
                 ui.showConfirm("Clear Uploaded Report?", "This removes the pasted report from your workspace.", "Clear Report", async () => {
