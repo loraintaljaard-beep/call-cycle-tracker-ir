@@ -280,9 +280,14 @@
                     
                     <div class="mt-4 flex justify-between items-center">
                         <div id="master-stats" class="text-sm text-slate-600 hidden bg-slate-50 p-3 rounded border border-slate-200 w-full max-w-2xl mr-4"></div>
-                        <button onclick="app.confirmProcessMaster()" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center ml-auto whitespace-nowrap h-fit">
-                            Process Call Cycle Data
-                        </button>
+                        <div class="flex gap-3 ml-auto">
+                            <button onclick="app.clearMasterData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center whitespace-nowrap h-fit">
+                                Clear Master Data
+                            </button>
+                            <button onclick="app.confirmProcessMaster()" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center whitespace-nowrap h-fit">
+                                Process Call Cycle Data
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1107,6 +1112,29 @@
                     snapshot.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
                     ui.renderHistory([]); ui.showToast("History cleared.", "success");
+                });
+            },
+
+            clearMasterData() {
+                ui.showConfirm("Clear Master Data?", "This will permanently delete the active master call cycle from the system for all users.", "Clear Data", async () => {
+                    if (!state.dbReady || !state.user || state.currentProfile !== 'Admin') return ui.showToast("Admin access required.", "error");
+                    
+                    ui.showToast("Clearing master data...", "info");
+                    try {
+                        const colRef = collection(db, MASTER_PATH);
+                        const snapshot = await getDocs(colRef);
+                        const batch = writeBatch(db);
+                        snapshot.forEach(doc => batch.delete(doc.ref));
+                        await batch.commit();
+                        
+                        state.masterData = [];
+                        ui.renderMasterTable();
+                        document.getElementById('master-stats').classList.add('hidden');
+                        ui.showToast("Master data cleared.", "success");
+                    } catch (e) {
+                        console.error("Clear Master Error:", e);
+                        ui.showToast("Failed to clear master data.", "error");
+                    }
                 });
             },
 
