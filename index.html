@@ -231,8 +231,8 @@
                             <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Wrong Day</p>
-                            <p id="metric-wrongday" class="text-2xl font-bold text-yellow-600 mt-1">0</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Captured, on wrong day</p>
+                            <p id="metric-wrongday" class="text-2xl font-bold text-green-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Needs Review</p>
@@ -248,7 +248,7 @@
                         <div class="flex border-b border-slate-200 bg-slate-50 px-2 pt-2 gap-2 overflow-x-auto">
                             <button onclick="ui.switchResultTab('tab-missing')" id="btn-tab-missing" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800 tab-active">Missing Captures</button>
                             <button onclick="ui.switchResultTab('tab-unexpected')" id="btn-tab-unexpected" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Unexpected Captures</button>
-                            <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Wrong Day</button>
+                            <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Captured, on wrong day</button>
                             <button onclick="ui.switchResultTab('tab-review')" id="btn-tab-review" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Needs Review</button>
                             <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Matched Captures</button>
                             <div class="flex-1"></div>
@@ -399,9 +399,6 @@
 
         /* ==========================================
            FIREBASE CONFIGURATION
-           ==========================================
-           STEP 1: Replace this object with your actual Firebase Project keys.
-           You get these from Firebase Console -> Project Settings -> General -> Your apps -> Web app.
         */
         const firebaseConfig = {
             apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
@@ -778,8 +775,7 @@
                         const actV = exp._matchedVisit;
                         const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
                         
-                        let catParts = [];
-                        actV.categories.forEach((tickets, catName) => catParts.push(`${catName} (${tickets.size})`));
+                        const categoryCount = actV.categories.size > 0 ? actV.categories.size.toString() : '-';
                         
                         let isEmpMatch = false;
                         for (const mapped of actV.mappedEmps) {
@@ -790,14 +786,14 @@
                             ...baseRec,
                             ActualDate: actV.dateStr,
                             ActualDay: actDayName,
-                            CategoriesCaptured: catParts.join(', ') || '-',
+                            CategoriesCaptured: categoryCount,
                             loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
                             MappedEmployeeName: Array.from(actV.mappedEmps).join(', '),
                             RawRowsCount: actV.rawCount
                         };
 
                         if (exp._matchType === 'WRONG_DAY') {
-                            results.wrongDay.push({ ...rec, Status: 'WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
+                            results.wrongDay.push({ ...rec, Status: 'CAPTURED, ON WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
                         } else if (actV.mappedEmps.size === 0) {
                             results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping needs review).' });
                         } else if (!isEmpMatch) {
@@ -812,8 +808,7 @@
                 actualVisits.forEach(v => {
                     if (!v.matchedToPlanned) {
                         const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
-                        let catParts = [];
-                        v.categories.forEach((tickets, catName) => catParts.push(`${catName} (${tickets.size})`));
+                        const categoryCount = v.categories.size > 0 ? v.categories.size.toString() : '-';
 
                         const actRec = {
                             ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
@@ -822,7 +817,7 @@
                             ExpectedEmployee: '-',
                             ActualDate: v.dateStr,
                             ActualDay: actDayName,
-                            CategoriesCaptured: catParts.join(', ') || '-',
+                            CategoriesCaptured: categoryCount,
                             loginId: Array.from(v.loginIds).join(', ') || 'Unknown',
                             Client: client
                         };
@@ -842,7 +837,7 @@
         window.ui = {
             currentTab: 'tab-missing',
             tablePage: 1,
-            tablePageSize: 100,
+            tablePageSize: 50,
             
             handleProfileChange() {
                 const sel = document.getElementById('profile-select').value;
@@ -1014,10 +1009,17 @@
                 let html = `<div class="flex flex-col h-full absolute inset-0"><div class="flex-1 overflow-auto"><table class="min-w-full divide-y text-sm"><thead class="bg-slate-100 sticky top-0"><tr>
                     <th class="p-2 text-left">Week</th><th class="p-2 text-left">Planned Date</th><th class="p-2 text-left">Store Code</th>
                     <th class="p-2 text-left">Store Name</th><th class="p-2 text-left">Act. Date</th><th class="p-2 text-left">LoginID</th>
-                    <th class="p-2 text-left">Categories</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Explanation</th>
+                    <th class="p-2 text-center">Categories</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Explanation</th>
                 </tr></thead><tbody class="bg-white">`;
                 
                 data.slice(start, end).forEach(r => {
+                    let statusColorClass = 'text-slate-800';
+                    if (r.Status === 'CAPTURED, ON WRONG DAY') statusColorClass = 'text-green-800';
+                    else if (r.Status === 'MISSING CAPTURE') statusColorClass = 'text-red-600';
+                    else if (r.Status === 'MATCHED') statusColorClass = 'text-green-600';
+                    else if (r.Status === 'UNEXPECTED CAPTURE') statusColorClass = 'text-orange-500';
+                    else if (r.Status === 'NEEDS REVIEW') statusColorClass = 'text-purple-600';
+
                     html += `<tr class="hover:bg-slate-50 border-b">
                         <td class="p-2 text-xs font-medium">Wk ${r.WeekNumber} - ${r.PlannedDay}</td>
                         <td class="p-2 text-xs font-mono">${r.PlannedDate}</td>
@@ -1025,8 +1027,8 @@
                         <td class="p-2 text-xs font-medium">${r.storeName}</td>
                         <td class="p-2 text-xs font-mono">${r.ActualDate} (${r.ActualDay})</td>
                         <td class="p-2 text-xs font-mono text-blue-700">${r.loginId}</td>
-                        <td class="p-2 text-xs truncate max-w-[200px]" title="${r.CategoriesCaptured}">${r.CategoriesCaptured}</td>
-                        <td class="p-2 text-xs font-bold">${r.Status}</td>
+                        <td class="p-2 text-xs text-center font-bold">${r.CategoriesCaptured}</td>
+                        <td class="p-2 text-xs font-bold ${statusColorClass}">${r.Status}</td>
                         <td class="p-2 text-xs text-slate-600">${r.DiscrepancyReason}</td>
                     </tr>`;
                 });
@@ -1089,7 +1091,7 @@
                 document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                 document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                 document.getElementById('metric-review').innerText = r.review.length;
-                document.getElementById('metric-completion').innerText = run.expected > 0 ? Math.round((r.matched.length / run.expected)*100) + '%' : '0%';
+                document.getElementById('metric-completion').innerText = run.expected > 0 ? Math.round(((r.matched.length + r.wrongDay.length) / run.expected)*100) + '%' : '0%';
 
                 ui.switchView('view-reconcile');
                 document.getElementById('recon-results').classList.remove('hidden-view');
@@ -1200,7 +1202,7 @@
                     document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                     document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                     document.getElementById('metric-review').innerText = r.review.length;
-                    document.getElementById('metric-completion').innerText = r.expectedCount > 0 ? Math.round((r.matched.length / r.expectedCount)*100) + '%' : '0%';
+                    document.getElementById('metric-completion').innerText = r.expectedCount > 0 ? Math.round(((r.matched.length + r.wrongDay.length) / r.expectedCount)*100) + '%' : '0%';
 
                     document.getElementById('schedule-validation-section').classList.add('hidden-view');
                     document.getElementById('recon-results').classList.remove('hidden-view');
@@ -1217,7 +1219,7 @@
                 
                 exp = exp.concat(state.lastResults.missing.map(r => mapR('MISSING', r)));
                 exp = exp.concat(state.lastResults.unexpected.map(r => mapR('UNEXPECTED', r)));
-                exp = exp.concat(state.lastResults.wrongDay.map(r => mapR('WRONG DAY', r)));
+                exp = exp.concat(state.lastResults.wrongDay.map(r => mapR('CAPTURED, ON WRONG DAY', r)));
                 exp = exp.concat(state.lastResults.review.map(r => mapR('REVIEW', r)));
                 exp = exp.concat(state.lastResults.matched.map(r => mapR('MATCHED', r)));
 
