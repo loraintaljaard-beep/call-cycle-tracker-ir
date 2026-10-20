@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Cycle Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Custom scrollbar for tables */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+        .hidden-view { display: none !important; }
+        .toast-enter { animation: toastIn 0.3s ease-out forwards; }
+        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
+        @keyframes toastIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <!-- Login View Overlay -->
+    <div id="login-view" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center transition-opacity">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-slate-200">
+            <div class="flex justify-center mb-4">
+                <div class="bg-blue-100 p-3 rounded-full text-blue-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center tracking-tight">Call Cycle Tracker</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Select Your Profile</label>
+                    <select id="profile-select" onchange="ui.handleProfileChange()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                        <option value="">-- Select Profile --</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Thato">Thato</option>
+                        <option value="Khetiwe">Khetiwe</option>
+                        <option value="Boitumelo">Boitumelo</option>
+                        <option value="Ridovhona">Ridovhona</option>
+                        <option value="Phemelo">Phemelo</option>
+                        <option value="Nosipho">Nosipho</option>
+                    </select>
+                </div>
+                <div id="password-group" class="hidden">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Admin Password</label>
+                    <input type="password" id="admin-password" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50" placeholder="Enter password">
+                </div>
+                <button onclick="ui.login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg shadow transition-colors mt-2">Log In</button>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-5 text-center leading-relaxed">Employee selection allocates your independent workspace. Admin access is restricted for master data management.</p>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="app-aside" class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 hidden md:flex">
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <button onclick="ui.switchView('view-reconcile')" id="nav-reconcile" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors bg-blue-600 text-white">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                Reconciliation
+            </button>
+            <button onclick="ui.switchView('view-master')" id="nav-master" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                Master Data <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
+            </button>
+            <button onclick="ui.switchView('view-mappings')" id="nav-mappings" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Employee Map <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
+            </button>
+            <button onclick="ui.switchView('view-history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                History
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800 text-xs flex flex-col gap-2">
+            <div class="flex items-center justify-between text-slate-300 bg-slate-800/50 p-2 rounded">
+                <div class="flex items-center gap-2 truncate">
+                    <div class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-[10px]" id="profile-avatar">?</div>
+                    <span id="current-user-name" class="font-medium truncate">Not Logged In</span>
+                </div>
+                <button onclick="ui.logout()" class="text-slate-400 hover:text-white transition-colors p-1" title="Log Out">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+            </div>
+            <div>Status: <span id="db-status" class="text-yellow-500 font-medium">Connecting...</span></div>
+        </div>
+    </aside>
+
+    <main id="app-main" class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
+        <!-- Topbar for Mobile -->
+        <header class="md:hidden h-16 bg-slate-900 text-white flex items-center px-4 justify-between shadow-md">
+            <h1 class="font-bold">Call Cycle Tracker</h1>
+            <div class="flex items-center gap-3">
+                <select id="mobile-nav" class="bg-slate-800 text-sm rounded border border-slate-700 px-2 py-1" onchange="ui.switchView(this.value)">
+                    <option value="view-reconcile">Reconciliation</option>
+                    <option value="view-master" id="mobile-nav-master">Master Data</option>
+                    <option value="view-mappings" id="mobile-nav-mappings">Employee Map</option>
+                    <option value="view-history">History</option>
+                </select>
+                <button onclick="ui.logout()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg></button>
+            </div>
+        </header>
+
+        <div id="main-content" class="flex-1 overflow-y-auto p-4 md:p-8">
+            
+            <!-- Reconciliation View -->
+            <div id="view-reconcile" class="view-section h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Run Reconciliation</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste actual IR captures to compare against the master cycle.</p>
+                    </div>
+                </div>
+
+                <div id="history-banner" class="hidden bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded-lg shadow-sm flex justify-between items-center">
+                    <div>
+                        <span class="font-bold mr-2">Viewing Historical Run:</span> 
+                        <span id="history-banner-details" class="font-medium"></span>
+                    </div>
+                    <button onclick="ui.closeHistoryView()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">
+                        Back to Workspace
+                    </button>
+                </div>
+
+                <!-- Input Area -->
+                <div id="recon-setup" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="col-span-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">1. Select Target Client</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="TBFSIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4" checked>
+                                    <span class="ml-3 font-medium text-slate-700">TBFSIR</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="RCLIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                    <span class="ml-3 font-medium text-slate-700">RCLIR</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="LiptonIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                    <span class="ml-3 font-medium text-slate-700">LiptonIR</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-span-1 md:col-span-2 flex flex-col">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-medium text-slate-700">2. Paste IR Image Report (Excel / TSV)</label>
+                                <button onclick="app.clearWorkspaceData()" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-2 py-1 bg-red-50 border border-red-200 hover:bg-red-100 rounded transition-colors">Clear Report</button>
+                            </div>
+                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: ticketNo, Date, userid, loginId, storeid, storeCode, storeName, Headline Category..." style="min-height: 150px;"></textarea>
+                            <div class="mt-4 flex justify-end">
+                                <button onclick="app.processPastedActuals()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    Analyze Dates & Continue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Validation Section -->
+                <div id="schedule-validation-section" class="hidden-view bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 border-l-4 border-l-blue-500">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">3. Schedule Validation Summary</h3>
+                    <p class="text-sm text-slate-500 mb-4">The system automatically calculated expected dates based on the reporting months detected in your actuals. Please review for any schedule conflicts before reconciling.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <span class="block font-semibold text-slate-700 mb-1">Detected Reporting Months:</span>
+                            <span id="sv-months" class="text-slate-600"></span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <span class="block font-semibold text-slate-700 mb-1">Schedule Conflicts:</span>
+                            <span id="sv-conflicts" class="font-medium"></span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto mb-4 border border-slate-200 rounded">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Employee</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Store</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Wk/Day</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Calculated Date</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedule-validation-tbody" class="divide-y divide-slate-200 bg-white">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button onclick="app.cancelReconciliation()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">Cancel</button>
+                        <button onclick="app.runReconciliation()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Confirm & Reconcile Reports
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Dashboard -->
+                <div id="recon-results" class="hidden-view flex-1 flex flex-col min-h-[500px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Results Dashboard</h3>
+                        <button onclick="ui.resetReconView()" class="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Back to Upload
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Expected</p>
+                            <p id="metric-expected" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Matched (Present)</p>
+                            <p id="metric-matched" class="text-2xl font-bold text-green-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Missing</p>
+                            <p id="metric-missing" class="text-2xl font-bold text-red-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Unexpected</p>
+                            <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Wrong Day</p>
+                            <p id="metric-wrongday" class="text-2xl font-bold text-yellow-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Needs Review</p>
+                            <p id="metric-review" class="text-2xl font-bold text-purple-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Completion</p>
+                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0%</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                        <div class="flex border-b border-slate-200 bg-slate-50 px-2 pt-2 gap-2 overflow-x-auto">
+                            <button onclick="ui.switchResultTab('tab-missing')" id="btn-tab-missing" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800 tab-active">Missing Captures</button>
+                            <button onclick="ui.switchResultTab('tab-unexpected')" id="btn-tab-unexpected" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Unexpected Captures</button>
+                            <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Wrong Day</button>
+                            <button onclick="ui.switchResultTab('tab-review')" id="btn-tab-review" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Needs Review</button>
+                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Matched Captures</button>
+                            <div class="flex-1"></div>
+                            <button onclick="app.exportResults()" class="self-center mb-1 bg-slate-800 text-white px-3 py-1.5 text-xs rounded shadow hover:bg-slate-700 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export Results
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-auto p-0 relative">
+                            <div id="results-table-container" class="absolute inset-0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Data View -->
+            <div id="view-master" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Master Data Configuration</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste the master call cycle containing expected stores and rules.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <p class="text-sm font-medium text-slate-700 mb-2">Paste Call Cycle Data</p>
+                    <p class="text-xs text-slate-500 mb-3">Open your Call Cycle Excel file, select the headers and all required rows, copy them, and paste them here. The system will automatically detect the column headers and process the data.</p>
+                    <textarea id="paste-master" class="w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: Region, Zone, EmployeeName, MasterWeeks, WeekNumber, DayNr, WeekDay, AS400StoreCode, StoreName, TBFSIR, RCLIR, LiptonIR..." style="min-height: 150px;"></textarea>
+                    
+                    <div class="mt-4 flex justify-between items-center">
+                        <div id="master-stats" class="text-sm text-slate-600 hidden bg-slate-50 p-3 rounded border border-slate-200 w-full max-w-2xl mr-4"></div>
+                        <button onclick="app.confirmProcessMaster()" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center ml-auto whitespace-nowrap h-fit">
+                            Process Call Cycle Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-[400px]">
+                    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-semibold text-slate-700">Current Master Data (<span id="master-count">0</span> rows)</h3>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="master-search" onkeyup="ui.filterMasterTable()" placeholder="Search stores/employees..." class="border border-slate-300 rounded px-2 py-1 text-sm w-48">
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">Region</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">EmployeeName</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">WeekNr</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">WeekDay</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">StoreCode</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">StoreName</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">TBFSIR</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">RCLIR</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">LiptonIR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-tbody" class="divide-y divide-slate-200 bg-white">
+                                <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No master data loaded.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mappings View -->
+            <div id="view-mappings" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Employee Mappings</h2>
+                        <p class="text-slate-500 text-sm mt-1">Map IR System Login IDs to Master Data Employee Names.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden flex-1 min-h-[400px]">
+                    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <input type="text" id="new-login-id" placeholder="IR loginId (e.g. jdoe12)" class="border border-slate-300 rounded px-3 py-1.5 text-sm w-48">
+                            <input type="text" id="new-emp-name" placeholder="Master EmployeeName" class="border border-slate-300 rounded px-3 py-1.5 text-sm w-48">
+                            <button onclick="app.addMapping()" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700">Add Mapping</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500 w-1/3">IR System loginId</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500 w-1/2">Master Call Cycle EmployeeName</th>
+                                    <th class="px-4 py-3 text-right font-medium text-slate-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappings-tbody" class="divide-y divide-slate-200 bg-white">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div id="view-history" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Reconciliation History</h2>
+                        <p class="text-slate-500 text-sm mt-1">Review previous run summaries.</p>
+                    </div>
+                    <button onclick="app.clearHistory()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Clear History
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden flex-1 min-h-[400px]">
+                    <div class="flex-1 overflow-auto p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="history-container">
+                            <p class="text-slate-500 col-span-full">No history available yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modals & Overlays -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
+            <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Message</h3>
+            <p id="modal-msg" class="text-slate-600 mb-6 whitespace-pre-wrap"></p>
+            <div class="flex justify-end gap-3" id="modal-actions">
+                <button onclick="ui.closeModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg font-medium">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/70 z-[100] hidden flex-col items-center justify-center backdrop-blur-sm text-white transition-opacity">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+        <span id="loading-text" class="font-medium text-lg tracking-tight">Synchronizing Data...</span>
+    </div>
+
+    <!-- MAIN APPLICATION LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, getDocs, addDoc, writeBatch, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /* ==========================================
+           FIREBASE CONFIGURATION
+           ==========================================
+           STEP 1: Replace this object with your actual Firebase Project keys.
+           You get these from Firebase Console -> Project Settings -> General -> Your apps -> Web app.
+        */
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
+            authDomain: "call-cycle-tracker.firebaseapp.com",
+            projectId: "call-cycle-tracker",
+            storageBucket: "call-cycle-tracker.firebasestorage.app",
+            messagingSenderId: "697360208233",
+            appId: "1:697360208233:web:d4a14da5b7acd9577b6df8"
+        };
+        const appId = 'call-cycle-tracker'; // Unique identifier for the database path
+
+        // Core Application State
+        const state = {
+            currentProfile: null,
+            masterData: [],
+            mappings: {},
+            currentActuals: [],
+            expectedPool: [],
+            lastResults: null,
+            historyData: [],
+            dbReady: false,
+            user: null
+        };
+
+        let db, auth;
+
+        // --- Firebase Initialization ---
+        async function initFirebase() {
+            if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                ui.setStatus("Local Mode (Setup Firebase Keys)", "text-orange-500");
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // We use anonymous auth to establish a secure DB session without requiring user sign-ups
+                await signInAnonymously(auth);
+                state.user = auth.currentUser;
+                
+                ui.setStatus("Connected to Database", "text-green-500");
+                state.dbReady = true;
+
+                // Load active session profile
+                const savedProfile = localStorage.getItem('callCycleProfile');
+                if (savedProfile) {
+                    ui.loginWithProfile(savedProfile);
+                }
+            } catch (err) {
+                console.error("Firebase Init Error:", err);
+                ui.setStatus("DB Connection Failed", "text-red-500");
+            }
+        }
+
+        // --- Data Layer (Firebase) ---
+        const MAPPINGS_PATH = `artifacts/${appId}/public/data/employee_mappings`;
+        const MASTER_PATH = `artifacts/${appId}/public/data/master_data_chunks`;
+        const HISTORY_PATH = `artifacts/${appId}/public/data/recon_history`;
+        const WORKSPACE_PATH = (profile) => `artifacts/${appId}/public/data/workspace_chunks_${profile}`;
+
+        async function loadWorkspaceState() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                const q = collection(db, WORKSPACE_PATH(state.currentProfile));
+                const snapshot = await getDocs(q);
+                let chunks = [];
+                let loadedClient = 'TBFSIR';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    chunks.push(data);
+                    if(data.client) loadedClient = data.client;
+                });
+                if (chunks.length > 0) {
+                    chunks.sort((a,b) => a.index - b.index);
+                    const fullText = chunks.map(c => c.chunk).join('');
+                    document.getElementById('paste-actuals').value = fullText;
+                    const radio = document.querySelector(`input[name="client"][value="${loadedClient}"]`);
+                    if(radio) radio.checked = true;
+                } else {
+                    document.getElementById('paste-actuals').value = '';
+                }
+            } catch (e) { console.error("Load Workspace:", e); }
+        }
+
+        async function saveWorkspaceState() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            const text = document.getElementById('paste-actuals').value || '';
+            const client = document.querySelector('input[name="client"]:checked').value;
+            try {
+                const colRef = collection(db, WORKSPACE_PATH(state.currentProfile));
+                const oldDocs = await getDocs(colRef);
+                const batch = writeBatch(db);
+                oldDocs.forEach(d => batch.delete(d.ref));
+                const chunkSize = 500000;
+                let chunkIndex = 0;
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    const docRef = doc(colRef, `chunk_${chunkIndex}`);
+                    batch.set(docRef, { chunk: text.slice(i, i + chunkSize), client, index: chunkIndex });
+                    chunkIndex++;
+                }
+                if(text.length === 0) batch.set(doc(colRef, `chunk_0`), { chunk: '', client, index: 0 });
+                await batch.commit();
+            } catch (e) { console.error("Save Workspace:", e); }
+        }
+
+        async function loadMappings() {
+            if (!state.dbReady || !state.user) return;
+            try {
+                const docRef = doc(db, MAPPINGS_PATH, "current");
+                const snap = await getDoc(docRef);
+                if (snap.exists()) state.mappings = snap.data().map || {};
+                ui.renderMappings();
+            } catch (e) { console.error("Load Mappings:", e); }
+        }
+
+        async function saveMappings() {
+            if (!state.dbReady || !state.user) return;
+            try { await setDoc(doc(db, MAPPINGS_PATH, "current"), { map: state.mappings }); } 
+            catch (e) { console.error("Save Mappings:", e); }
+        }
+
+        async function loadMasterData() {
+            if (!state.dbReady || !state.user) return;
+            try {
+                const q = collection(db, MASTER_PATH);
+                const snapshot = await getDocs(q);
+                let loaded = [];
+                snapshot.forEach(doc => {
+                    if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk));
+                });
+                state.masterData = loaded;
+                ui.renderMasterTable();
+            } catch (e) { console.error("Load Master:", e); }
+        }
+
+        async function saveMasterData() {
+            if (!state.dbReady || !state.user) return;
+            if (state.currentProfile !== 'Admin') return ui.showToast("Admin access required.", "error");
+            try {
+                ui.showToast("Saving master data to cloud...", "info");
+                const colRef = collection(db, MASTER_PATH);
+                const oldDocs = await getDocs(colRef);
+                const batch = writeBatch(db);
+                oldDocs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+
+                const chunkSize = 500;
+                for (let i = 0; i < state.masterData.length; i += chunkSize) {
+                    const chunk = state.masterData.slice(i, i + chunkSize);
+                    await addDoc(collection(db, MASTER_PATH), { chunk: JSON.stringify(chunk) });
+                }
+                ui.showToast("Master data saved successfully.", "success");
+            } catch (e) {
+                console.error("Save Master Error:", e);
+                ui.showToast("Failed to save master data.", "error");
+                throw e;
+            }
+        }
+
+        async function saveHistory(summary, fullResults) {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                await addDoc(collection(db, HISTORY_PATH), {
+                    date: new Date().toISOString(),
+                    client: summary.client,
+                    profile: state.currentProfile,
+                    processedBy: state.currentProfile,
+                    expected: summary.expected,
+                    matched: summary.matched,
+                    missing: summary.missing,
+                    unexpected: summary.unexpected,
+                    wrongDay: summary.wrongDay,
+                    review: summary.review,
+                    userId: state.user.uid,
+                    fullResults: JSON.stringify(fullResults)
+                });
+                await loadHistory();
+            } catch (e) { console.error("Save History Error:", e); }
+        }
+
+        async function loadHistory() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                let q = collection(db, HISTORY_PATH);
+                if (state.currentProfile !== 'Admin') q = query(q, where("profile", "==", state.currentProfile));
+                const snapshot = await getDocs(q);
+                const history = [];
+                snapshot.forEach(d => history.push({id: d.id, ...d.data()}));
+                history.sort((a,b) => new Date(b.date) - new Date(a.date));
+                ui.renderHistory(history);
+            } catch (e) { console.error("Load History:", e); }
+        }
+
+        // --- Logic Engine ---
+        const engine = {
+            parseTSV(text, reqHeaders = []) {
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+                if (lines.length < 2) throw new Error("Not enough data. Headers or rows are missing.");
+                const headers = lines[0].split('\t').map(h => h.trim());
+                
+                const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
+                if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
+
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split('\t');
+                    let row = {};
+                    headers.forEach((h, idx) => {
+                        row[h] = cols[idx] ? cols[idx].trim() : '';
+                    });
+                    data.push(row);
+                }
+                return data;
+            },
+
+            normalizeCode(code) {
+                if (!code || code === '0' || code === '#N/A' || code === '-') return null;
+                const s = String(code).trim();
+                return s.length > 0 && s.toLowerCase() !== 'null' && s !== 'undefined' ? s : null;
+            },
+
+            normalizeText(str) {
+                if (!str) return '';
+                return str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+            },
+
+            parseDate(dateStr) {
+                if (!dateStr) return null;
+                if (typeof dateStr === 'string') {
+                    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
+                    if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                }
+                let d = new Date(dateStr);
+                if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                
+                const parts = String(dateStr).split(/[\/\-]/);
+                if (parts.length === 3 && parts[2].length === 4) {
+                    d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    if (!isNaN(d.getTime())) return d;
+                }
+                return null;
+            },
+
+            getWeekOneMonday(year, month) {
+                let firstOfMonth = new Date(year, month, 1);
+                let dayOfWeek = firstOfMonth.getDay();
+                let jsDayToMondayZero = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                return new Date(year, month, 1 - jsDayToMondayZero);
+            },
+
+            getExpectedDate(year, month, weekNumber, weekDayStr) {
+                let w1Mon = this.getWeekOneMonday(year, month);
+                let dayOffset = { 'monday':0, 'tuesday':1, 'wednesday':2, 'thursday':3, 'friday':4, 'saturday':5, 'sunday':6 }[this.normalizeText(weekDayStr)] ?? -1;
+                if (dayOffset === -1) return null;
+                let targetDate = new Date(w1Mon);
+                targetDate.setDate(w1Mon.getDate() + ((weekNumber - 1) * 7) + dayOffset);
+                return targetDate;
+            },
+
+            formatDate(dateObj) {
+                return dateObj ? dateObj.toISOString().split('T')[0] : '';
+            },
+            
+            getDayNumber(weekDayStr) {
+                return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0;
+            },
+
+            run(actuals, client, expectedPool) {
+                const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
+                
+                // Identify dynamic category header
+                let catHeader = 'category';
+                if(actuals.length > 0) {
+                    const keys = Object.keys(actuals[0]);
+                    const found = keys.find(k => /category/i.test(k));
+                    if(found) catHeader = found;
+                }
+
+                const actualVisits = new Map();
+                
+                // Step 1: Process Actuals into Unique Store Visits
+                actuals.forEach(act => {
+                    let codeVal = this.normalizeCode(act.storeCode || act.StoreCode);
+                    const id = codeVal !== null ? 'CODE_' + codeVal : 'INVALID_ACT_' + Math.random();
+                    
+                    const parsedDate = this.parseDate(act.Date);
+                    const dateStr = parsedDate ? this.formatDate(parsedDate) : 'UnknownDate';
+                    const visitKey = `${id}_${dateStr}`;
+                    
+                    if (!actualVisits.has(visitKey)) {
+                        actualVisits.set(visitKey, {
+                            storeCodeKey: id,
+                            originalStoreCode: act.storeCode || act.StoreCode || '',
+                            isValidCode: codeVal !== null,
+                            storeName: act.storeName || act.StoreName || '',
+                            dateStr: dateStr,
+                            parsedDate: parsedDate,
+                            rawCount: 0,
+                            loginIds: new Set(),
+                            mappedEmps: new Set(),
+                            categories: new Map(),
+                            matchedToPlanned: false
+                        });
+                    }
+                    const v = actualVisits.get(visitKey);
+                    v.rawCount++;
+                    
+                    const login = act.loginId || act.loginID || act.userid || 'Unknown';
+                    v.loginIds.add(login);
+                    const mapped = state.mappings[login];
+                    if (mapped) v.mappedEmps.add(mapped);
+                    
+                    let cat = act[catHeader] || 'Unclassified';
+                    cat = cat.toString().trim().replace(/\s+/g, ' ');
+                    let ticket = act.ticketNo || act.activityid || act.Imageurl || `row_${v.rawCount}`;
+                    
+                    if (!v.categories.has(cat)) v.categories.set(cat, new Set());
+                    v.categories.get(cat).add(ticket);
+                });
+
+                // Step 2: Match Expected to Actuals using EXACT STORE CODE ONLY
+                expectedPool.forEach(exp => {
+                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
+                    const id = codeVal !== null ? 'CODE_' + codeVal : 'INVALID_EXP_' + Math.random();
+                    exp._isValidCode = codeVal !== null;
+                    const expectedDateStr = exp._ExpectedDateStr;
+                    
+                    const exactMatchKey = `${id}_${expectedDateStr}`;
+                    const exactMatch = actualVisits.get(exactMatchKey);
+                    
+                    if (exactMatch && exp._isValidCode) {
+                        exp._matchedVisit = exactMatch;
+                        exp._matchType = 'EXACT';
+                        exactMatch.matchedToPlanned = true;
+                    }
+                });
+                
+                // Step 3: Find Wrong Day matches based solely on STORE CODE
+                expectedPool.forEach(exp => {
+                    if (exp._matchedVisit || !exp._isValidCode) return;
+                    const id = 'CODE_' + this.normalizeCode(exp.AS400StoreCode);
+                    const availableVisits = Array.from(actualVisits.values()).filter(v => v.storeCodeKey === id && !v.matchedToPlanned);
+                    if (availableVisits.length > 0) {
+                        const wrongDayMatch = availableVisits[0];
+                        exp._matchedVisit = wrongDayMatch;
+                        exp._matchType = 'WRONG_DAY';
+                        wrongDayMatch.matchedToPlanned = true;
+                    }
+                });
+
+                // Step 4: Generate Results
+                expectedPool.forEach(exp => {
+                    const expDateParsed = this.parseDate(exp._ExpectedDateStr);
+                    const monthStr = expDateParsed ? expDateParsed.toLocaleString('en-US', {month: 'long', year: 'numeric'}) : 'Unknown Month';
+                    
+                    const baseRec = {
+                        ReportingMonth: monthStr,
+                        WeekNumber: exp.WeekNumber || '-',
+                        DayNr: exp.DayNr || '-',
+                        PlannedDay: exp.WeekDay || '-',
+                        PlannedDate: exp._ExpectedDateStr || '-',
+                        storeCode: exp.AS400StoreCode || '',
+                        storeName: exp.StoreName || '',
+                        ExpectedEmployee: exp.EmployeeName || '',
+                        Client: client
+                    };
+
+                    if (!exp._isValidCode) {
+                        results.review.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'NEEDS REVIEW', DiscrepancyReason: `Master schedule missing valid AS400StoreCode.` });
+                    } else if (!exp._matchedVisit) {
+                        results.missing.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'MISSING CAPTURE', DiscrepancyReason: `Missed planned visit for Week ${exp.WeekNumber}, ${exp.WeekDay}.` });
+                    } else {
+                        const actV = exp._matchedVisit;
+                        const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
+                        
+                        let catParts = [];
+                        actV.categories.forEach((tickets, catName) => catParts.push(`${catName} (${tickets.size})`));
+                        
+                        let isEmpMatch = false;
+                        for (const mapped of actV.mappedEmps) {
+                            if (this.normalizeText(exp.EmployeeName) === this.normalizeText(mapped)) { isEmpMatch = true; break; }
+                        }
+
+                        const rec = {
+                            ...baseRec,
+                            ActualDate: actV.dateStr,
+                            ActualDay: actDayName,
+                            CategoriesCaptured: catParts.join(', ') || '-',
+                            loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
+                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', '),
+                            RawRowsCount: actV.rawCount
+                        };
+
+                        if (exp._matchType === 'WRONG_DAY') {
+                            results.wrongDay.push({ ...rec, Status: 'WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
+                        } else if (actV.mappedEmps.size === 0) {
+                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping needs review).' });
+                        } else if (!isEmpMatch) {
+                            results.wrongDay.push({ ...rec, Status: 'SCHEDULE DISCREPANCY', DiscrepancyReason: `Captured on schedule, but by wrong employee.` });
+                        } else {
+                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Captured exactly as scheduled.' });
+                        }
+                    }
+                });
+                
+                // Step 5: Unexpected captures
+                actualVisits.forEach(v => {
+                    if (!v.matchedToPlanned) {
+                        const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
+                        let catParts = [];
+                        v.categories.forEach((tickets, catName) => catParts.push(`${catName} (${tickets.size})`));
+
+                        const actRec = {
+                            ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
+                            storeCode: v.originalStoreCode,
+                            storeName: v.storeName,
+                            ExpectedEmployee: '-',
+                            ActualDate: v.dateStr,
+                            ActualDay: actDayName,
+                            CategoriesCaptured: catParts.join(', ') || '-',
+                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown',
+                            Client: client
+                        };
+                        if (!v.isValidCode) {
+                            results.review.push({ ...actRec, Status: 'NEEDS REVIEW', DiscrepancyReason: 'IR report row missing valid storeCode.' });
+                        } else {
+                            results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
+                        }
+                    }
+                });
+
+                return results;
+            }
+        };
+
+        // --- UI Layer ---
+        window.ui = {
+            currentTab: 'tab-missing',
+            tablePage: 1,
+            tablePageSize: 100,
+            
+            handleProfileChange() {
+                const sel = document.getElementById('profile-select').value;
+                const pwd = document.getElementById('password-group');
+                if (sel === 'Admin') pwd.classList.remove('hidden');
+                else pwd.classList.add('hidden');
+            },
+
+            login() {
+                const sel = document.getElementById('profile-select').value;
+                if (!sel) return this.showToast("Select a profile to log in.", "error");
+
+                if (sel === 'Admin') {
+                    if (document.getElementById('admin-password').value !== 'Cycle1') {
+                        return this.showToast("Incorrect Admin password.", "error");
+                    }
+                }
+                this.loginWithProfile(sel);
+            },
+
+            async loginWithProfile(profileName) {
+                state.currentProfile = profileName;
+                localStorage.setItem('callCycleProfile', profileName);
+                
+                document.getElementById('current-user-name').innerText = profileName;
+                document.getElementById('profile-avatar').innerText = profileName.charAt(0).toUpperCase();
+                document.getElementById('login-view').classList.add('hidden');
+                
+                const isAdmin = profileName === 'Admin';
+                document.getElementById('nav-master').style.display = isAdmin ? 'flex' : 'none';
+                document.getElementById('nav-mappings').style.display = isAdmin ? 'flex' : 'none';
+                document.getElementById('mobile-nav-master').style.display = isAdmin ? 'block' : 'none';
+                document.getElementById('mobile-nav-mappings').style.display = isAdmin ? 'block' : 'none';
+
+                this.switchView('view-reconcile');
+
+                if (state.dbReady) {
+                    document.getElementById('loading-overlay').classList.replace('hidden', 'flex');
+                    await loadMasterData();
+                    await loadMappings();
+                    await loadHistory();
+                    await loadWorkspaceState();
+                    document.getElementById('loading-overlay').classList.replace('flex', 'hidden');
+                }
+            },
+
+            logout() {
+                state.currentProfile = null;
+                localStorage.removeItem('callCycleProfile');
+                document.getElementById('admin-password').value = '';
+                document.getElementById('profile-select').value = '';
+                this.handleProfileChange();
+                document.getElementById('login-view').classList.remove('hidden');
+            },
+
+            resetReconView() {
+                document.getElementById('recon-results').classList.add('hidden-view');
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                document.getElementById('history-banner').classList.add('hidden');
+                document.getElementById('recon-setup').classList.remove('hidden');
+            },
+
+            closeHistoryView() { this.resetReconView(); },
+
+            switchView(viewId) {
+                if (state.currentProfile !== 'Admin' && (viewId === 'view-master' || viewId === 'view-mappings')) {
+                    return this.showToast("Admin access required.", "error");
+                }
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
+                document.getElementById(viewId).classList.remove('hidden-view');
+                
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('hover:bg-slate-800');
+                });
+                const activeBtn = document.getElementById('nav-' + viewId.replace('view-',''));
+                if (activeBtn) activeBtn.classList.add('bg-blue-600', 'text-white');
+            },
+            
+            setStatus(msg, colorClass) {
+                const el = document.getElementById('db-status');
+                el.className = `text-xs font-medium ${colorClass}`;
+                el.innerText = msg;
+            },
+
+            showModal(title, msg) {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-msg').innerText = msg;
+                document.getElementById('modal-actions').innerHTML = `<button onclick="ui.closeModal()" class="bg-slate-800 text-white px-5 py-2 rounded">OK</button>`;
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            showConfirm(title, msg, confirmText, onConfirm) {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-msg').innerText = msg;
+                document.getElementById('modal-actions').innerHTML = `
+                    <button onclick="ui.closeModal()" class="px-4 py-2 border rounded">Cancel</button>
+                    <button id="modal-confirm-btn" class="bg-red-600 text-white px-5 py-2 rounded">${confirmText}</button>
+                `;
+                document.getElementById('modal-confirm-btn').onclick = () => { ui.closeModal(); onConfirm(); };
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); },
+
+            showToast(msg, type='info') {
+                const c = document.getElementById('toast-container');
+                const t = document.createElement('div');
+                const colors = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-slate-800';
+                t.className = `${colors} text-white px-4 py-3 rounded shadow text-sm font-medium toast-enter`;
+                t.innerText = msg;
+                c.appendChild(t);
+                setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
+            },
+
+            renderMasterTable() {
+                document.getElementById('master-count').innerText = state.masterData.length;
+                this.filterMasterTable();
+            },
+
+            filterMasterTable() {
+                const t = document.getElementById('master-search')?.value.toLowerCase() || '';
+                const f = state.masterData.filter(r => 
+                    (r.StoreName || '').toLowerCase().includes(t) || (r.AS400StoreCode || '').toLowerCase().includes(t)
+                );
+                document.getElementById('master-tbody').innerHTML = f.slice(0, 100).map(r => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2">${r.Region || ''}</td>
+                        <td class="px-4 py-2">${r.EmployeeName || ''}</td>
+                        <td class="px-4 py-2">${r.WeekNumber || ''}</td>
+                        <td class="px-4 py-2">${r.WeekDay || ''}</td>
+                        <td class="px-4 py-2 font-mono text-slate-500">${r.AS400StoreCode || ''}</td>
+                        <td class="px-4 py-2 font-medium">${r.StoreName || ''}</td>
+                        <td class="px-4 py-2 text-center">${r.TBFSIR == 1 ? '✅' : '-'}</td>
+                        <td class="px-4 py-2 text-center">${r.RCLIR == 1 ? '✅' : '-'}</td>
+                        <td class="px-4 py-2 text-center">${r.LiptonIR == 1 ? '✅' : '-'}</td>
+                    </tr>
+                `).join('');
+            },
+
+            renderMappings() {
+                document.getElementById('mappings-tbody').innerHTML = Object.entries(state.mappings).map(([logId, emp]) => `
+                    <tr><td class="px-4 py-2 font-mono">${logId}</td><td class="px-4 py-2 font-medium">${emp}</td>
+                    <td class="px-4 py-2 text-right"><button onclick="app.removeMapping('${logId}')" class="text-red-500 text-xs">Remove</button></td></tr>
+                `).join('') || `<tr><td colspan="3" class="p-4 text-center">No mappings.</td></tr>`;
+            },
+
+            switchResultTab(tabId) {
+                this.currentTab = tabId; this.tablePage = 1;
+                ['tab-missing', 'tab-unexpected', 'tab-wrongday', 'tab-review', 'tab-matched'].forEach(id => {
+                    const btn = document.getElementById('btn-' + id);
+                    if(btn) { id === tabId ? btn.classList.add('tab-active') : btn.classList.remove('tab-active'); }
+                });
+                this.renderResultsTable();
+            },
+
+            renderResultsTable() {
+                if(!state.lastResults) return;
+                const c = document.getElementById('results-table-container');
+                let data = state.lastResults[{'tab-missing':'missing', 'tab-unexpected':'unexpected', 'tab-wrongday':'wrongDay', 'tab-review':'review', 'tab-matched':'matched'}[this.currentTab]] || [];
+
+                if(data.length === 0) { c.innerHTML = `<div class="p-8 text-center text-slate-500">No records found.</div>`; return; }
+
+                const size = this.tablePageSize === 'All' ? data.length : parseInt(this.tablePageSize);
+                const start = (this.tablePage - 1) * size;
+                const end = Math.min(start + size, data.length);
+                const totalPages = Math.ceil(data.length / size) || 1;
+
+                let html = `<div class="flex flex-col h-full absolute inset-0"><div class="flex-1 overflow-auto"><table class="min-w-full divide-y text-sm"><thead class="bg-slate-100 sticky top-0"><tr>
+                    <th class="p-2 text-left">Week</th><th class="p-2 text-left">Planned Date</th><th class="p-2 text-left">Store Code</th>
+                    <th class="p-2 text-left">Store Name</th><th class="p-2 text-left">Act. Date</th><th class="p-2 text-left">LoginID</th>
+                    <th class="p-2 text-left">Categories</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Explanation</th>
+                </tr></thead><tbody class="bg-white">`;
+                
+                data.slice(start, end).forEach(r => {
+                    html += `<tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2 text-xs font-medium">Wk ${r.WeekNumber} - ${r.PlannedDay}</td>
+                        <td class="p-2 text-xs font-mono">${r.PlannedDate}</td>
+                        <td class="p-2 text-xs font-mono font-bold">${r.storeCode}</td>
+                        <td class="p-2 text-xs font-medium">${r.storeName}</td>
+                        <td class="p-2 text-xs font-mono">${r.ActualDate} (${r.ActualDay})</td>
+                        <td class="p-2 text-xs font-mono text-blue-700">${r.loginId}</td>
+                        <td class="p-2 text-xs truncate max-w-[200px]" title="${r.CategoriesCaptured}">${r.CategoriesCaptured}</td>
+                        <td class="p-2 text-xs font-bold">${r.Status}</td>
+                        <td class="p-2 text-xs text-slate-600">${r.DiscrepancyReason}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div><div class="p-2 bg-slate-50 flex justify-between items-center text-sm">
+                    <div>Showing ${start+1} to ${end} of ${data.length}</div>
+                    <div class="flex items-center gap-2">
+                        <select onchange="ui.tablePageSize=this.value; ui.renderResultsTable()" class="border rounded p-1">
+                            <option value="50" ${size==50?'selected':''}>50</option>
+                            <option value="500" ${size==500?'selected':''}>500</option>
+                            <option value="All" ${this.tablePageSize=='All'?'selected':''}>All</option>
+                        </select>
+                        <button onclick="ui.tablePage--; ui.renderResultsTable()" ${this.tablePage===1?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Prev</button>
+                        <span>${this.tablePage}/${totalPages}</span>
+                        <button onclick="ui.tablePage++; ui.renderResultsTable()" ${this.tablePage===totalPages?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Next</button>
+                    </div>
+                </div></div>`;
+                c.innerHTML = html;
+            },
+
+            renderHistory(hist) {
+                state.historyData = hist;
+                const c = document.getElementById('history-container');
+                if(!hist.length) return c.innerHTML = `<p class="col-span-full">No history available in your workspace.</p>`;
+                c.innerHTML = hist.map(h => {
+                    const d = new Date(h.date);
+                    return `<div onclick="app.openHistoryRun('${h.id}')" class="border p-4 rounded-lg shadow-sm hover:shadow-md cursor-pointer bg-white">
+                        <div class="flex justify-between text-xs mb-2"><span class="font-bold bg-blue-100 px-2 rounded">${h.client}</span><span>${d.toLocaleString()}</span></div>
+                        <div class="grid grid-cols-2 text-sm mt-2">
+                            <div>Expected: <span class="font-bold">${h.expected}</span></div>
+                            <div class="text-green-600">Matched: <span class="font-bold">${h.matched}</span></div>
+                            <div class="text-red-600">Missing: <span class="font-bold">${h.missing}</span></div>
+                            <div class="text-orange-500">Unexpected: <span class="font-bold">${h.unexpected}</span></div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        };
+
+        // --- Controller ---
+        window.app = {
+            clearWorkspaceData() {
+                ui.showConfirm("Clear Uploaded Report?", "This removes the pasted report from your workspace.", "Clear Report", async () => {
+                    document.getElementById('paste-actuals').value = ''; state.currentActuals = []; ui.resetReconView(); await saveWorkspaceState();
+                });
+            },
+
+            openHistoryRun(id) {
+                const run = state.historyData.find(h => h.id === id);
+                if (!run) return;
+                state.lastResults = JSON.parse(run.fullResults);
+                document.getElementById('history-banner-details').innerText = `${run.client} - ${new Date(run.date).toLocaleString()}`;
+                document.getElementById('history-banner').classList.remove('hidden');
+                document.getElementById('recon-setup').classList.add('hidden');
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                
+                const r = state.lastResults;
+                document.getElementById('metric-expected').innerText = run.expected;
+                document.getElementById('metric-matched').innerText = r.matched.length;
+                document.getElementById('metric-missing').innerText = r.missing.length;
+                document.getElementById('metric-unexpected').innerText = r.unexpected.length;
+                document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
+                document.getElementById('metric-review').innerText = r.review.length;
+                document.getElementById('metric-completion').innerText = run.expected > 0 ? Math.round((r.matched.length / run.expected)*100) + '%' : '0%';
+
+                ui.switchView('view-reconcile');
+                document.getElementById('recon-results').classList.remove('hidden-view');
+                ui.switchResultTab('tab-missing');
+            },
+
+            clearHistory() {
+                ui.showConfirm("Clear History?", "Permanently delete all reconciliation history in your workspace?", "Delete History", async () => {
+                    let q = collection(db, HISTORY_PATH);
+                    if (state.currentProfile !== 'Admin') q = query(q, where("profile", "==", state.currentProfile));
+                    const snapshot = await getDocs(q);
+                    const batch = writeBatch(db);
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    ui.renderHistory([]); ui.showToast("History cleared.", "success");
+                });
+            },
+
+            confirmProcessMaster() {
+                const text = document.getElementById('paste-master').value;
+                if (!text.trim()) return ui.showToast("Paste call cycle data first.", "error");
+                if (state.masterData.length > 0) {
+                    ui.showConfirm("Replace Master Data?", "Overwrite existing master data with the new pasted data?", "Replace", () => this.executeProcessMaster(text));
+                } else this.executeProcessMaster(text);
+            },
+
+            async executeProcessMaster(text) {
+                ui.showToast("Processing...", "info");
+                try {
+                    const req = ['EmployeeName', 'WeekNumber', 'WeekDay', 'AS400StoreCode', 'StoreName', 'TBFSIR'];
+                    const parsed = engine.parseTSV(text, req);
+                    state.masterData = parsed.map(r => ({ ...r, AS400StoreCode: String(r.AS400StoreCode).trim() }));
+                    
+                    document.getElementById('master-stats').innerHTML = `<strong>Success:</strong> ${parsed.length} rows processed.`;
+                    document.getElementById('master-stats').classList.remove('hidden');
+                    
+                    await saveMasterData();
+                    document.getElementById('paste-master').value = '';
+                    ui.renderMasterTable();
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            addMapping() {
+                const l = document.getElementById('new-login-id').value.trim();
+                const e = document.getElementById('new-emp-name').value.trim();
+                if(l && e) { state.mappings[l] = e; saveMappings(); ui.renderMappings(); ui.showToast("Added", "success"); }
+            },
+            removeMapping(l) { delete state.mappings[l]; saveMappings(); ui.renderMappings(); },
+
+            processPastedActuals() {
+                const text = document.getElementById('paste-actuals').value;
+                if (!text.trim() || !state.masterData.length) return ui.showModal("Error", "Missing report or master data.");
+                try {
+                    const req = ['Date', 'storeCode'];
+                    state.currentActuals = engine.parseTSV(text, req);
+                    const monthsSet = new Set();
+                    state.currentActuals.forEach(r => {
+                        let d = engine.parseDate(r.Date);
+                        if (d) monthsSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+                    });
+                    if(monthsSet.size === 0) throw new Error("No valid dates found to calculate schedule.");
+
+                    state.expectedPool = [];
+                    const client = document.querySelector('input[name="client"]:checked').value;
+                    const masterFilter = state.masterData.filter(m => String(m[client]) === '1' || String(m[client]).toLowerCase() === 'true');
+                    
+                    let conflictsCount = 0;
+                    masterFilter.forEach(m => {
+                        let expDayNr = engine.getDayNumber(m.WeekDay);
+                        let conflict = (m.DayNr && expDayNr > 0 && String(m.DayNr) !== String(expDayNr)) || expDayNr === 0;
+                        monthsSet.forEach(mo => {
+                            const [y, mm] = mo.split('-');
+                            let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
+                            if(!d) conflict = true;
+                            state.expectedPool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _hasConflict: conflict });
+                        });
+                        if (conflict) conflictsCount++;
+                    });
+
+                    document.getElementById('recon-setup').classList.add('hidden');
+                    saveWorkspaceState();
+                    document.getElementById('schedule-validation-section').classList.remove('hidden-view');
+                    document.getElementById('sv-conflicts').innerText = conflictsCount > 0 ? `${conflictsCount} issues found` : 'None detected';
+                    
+                    document.getElementById('schedule-validation-tbody').innerHTML = state.expectedPool.slice(0,100).map(e => `
+                        <tr><td class="p-2">${e.EmployeeName}</td><td class="p-2">${e.StoreName}</td><td class="p-2">Wk ${e.WeekNumber} - ${e.WeekDay}</td>
+                        <td class="p-2 font-mono">${e._ExpectedDateStr}</td><td class="p-2 font-bold ${e._hasConflict?'text-red-500':'text-green-500'}">${e._hasConflict?'CONFLICT':'OK'}</td></tr>
+                    `).join('');
+
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            cancelReconciliation() {
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                document.getElementById('recon-setup').classList.remove('hidden');
+            },
+
+            runReconciliation() {
+                const client = document.querySelector('input[name="client"]:checked').value;
+                ui.showToast("Running...", "info");
+                try {
+                    const r = engine.run(state.currentActuals, client, state.expectedPool);
+                    state.lastResults = r;
+                    
+                    document.getElementById('metric-expected').innerText = r.expectedCount;
+                    document.getElementById('metric-matched').innerText = r.matched.length;
+                    document.getElementById('metric-missing').innerText = r.missing.length;
+                    document.getElementById('metric-unexpected').innerText = r.unexpected.length;
+                    document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
+                    document.getElementById('metric-review').innerText = r.review.length;
+                    document.getElementById('metric-completion').innerText = r.expectedCount > 0 ? Math.round((r.matched.length / r.expectedCount)*100) + '%' : '0%';
+
+                    document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                    document.getElementById('recon-results').classList.remove('hidden-view');
+                    ui.switchResultTab('tab-missing');
+                    
+                    saveHistory({ client, expected: r.expectedCount, matched: r.matched.length, missing: r.missing.length, unexpected: r.unexpected.length, wrongDay: r.wrongDay.length, review: r.review.length }, r);
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            exportResults() {
+                if(!state.lastResults) return;
+                let exp = [];
+                const mapR = (t, r) => ({ 'Status': t, 'Reporting Month': r.ReportingMonth, 'Sch. Week': r.WeekNumber, 'Sch. DayNr': r.DayNr, 'Planned Weekday': r.PlannedDay, 'Planned Date': r.PlannedDate, 'Store Code': r.storeCode, 'Store Name': r.storeName, 'Expected Employee': r.ExpectedEmployee, 'Act. Date': r.ActualDate, 'Act. Weekday': r.ActualDay, 'Captured By': r.loginId, 'Categories': r.CategoriesCaptured, 'Reason': r.DiscrepancyReason });
+                
+                exp = exp.concat(state.lastResults.missing.map(r => mapR('MISSING', r)));
+                exp = exp.concat(state.lastResults.unexpected.map(r => mapR('UNEXPECTED', r)));
+                exp = exp.concat(state.lastResults.wrongDay.map(r => mapR('WRONG DAY', r)));
+                exp = exp.concat(state.lastResults.review.map(r => mapR('REVIEW', r)));
+                exp = exp.concat(state.lastResults.matched.map(r => mapR('MATCHED', r)));
+
+                const ws = XLSX.utils.json_to_sheet(exp);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Results");
+                XLSX.writeFile(wb, `CallCycle_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
+            }
+        };
+
+        window.onload = initFirebase;
+    </script>
+</body>
+</html>
