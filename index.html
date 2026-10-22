@@ -128,6 +128,10 @@
 
             <div id="view-mappings" class="view-section hidden-view h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-4">Employee Mappings</h2>
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-sm text-slate-500 mb-2">Configure mapping between IR capture logins and Master Cycle employee names.</p>
+                    <div id="mappings-list" class="space-y-2"></div>
+                </div>
             </div>
 
             <div id="view-history" class="view-section hidden-view h-full flex flex-col">
@@ -140,12 +144,12 @@
 
             <!-- Auditor Performance View -->
             <div id="view-performance" class="view-section h-full flex flex-col">
-                <div class="mb-6">
+                <div class="mb-6 flex-shrink-0">
                     <h2 class="text-2xl font-bold text-slate-800">Auditor Performance</h2>
                     <p class="text-slate-500 text-sm mt-1">Upload multiple IR Image reports to calculate accurate completion percentages derived exactly from the Master Call Cycle.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 flex-shrink-0">
                     <!-- Lipton Selector -->
                     <div class="col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col">
                         <h3 class="font-bold text-slate-800 mb-2">Lipton Retailer Filter</h3>
@@ -211,14 +215,14 @@
                             </div>
                         </div>
                         <div class="mt-4 flex justify-between items-center">
-                            <span id="perf-status-msg" class="text-sm text-slate-600"></span>
+                            <span id="perf-status-msg" class="text-sm text-slate-600 font-medium"></span>
                             <button onclick="app.executePerformance()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow transition-colors">Calculate Performance</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Results Area -->
-                <div id="perf-results" class="hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 min-h-[400px]">
+                <div id="perf-results" class="hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
                     <div class="flex justify-between items-end px-4 pt-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
                         <div class="flex gap-4">
                             <button onclick="ui.switchPerfTab('auditor')" id="tab-perf-auditor" class="pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Auditor Summary</button>
@@ -235,7 +239,7 @@
                     </div>
 
                     <!-- Client Summary Tab -->
-                    <div id="perf-client-view" class="hidden flex-1 flex-col overflow-y-auto p-4 bg-slate-50 h-full">
+                    <div id="perf-client-view" class="hidden flex-1 flex-col overflow-y-auto p-4 bg-slate-50">
                         <div id="client-recon-validation-banner" class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-blue-800 rounded flex-shrink-0"></div>
                         <div class="bg-white rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
                             <h3 class="font-bold text-slate-800 p-4 border-b border-slate-200 text-lg uppercase tracking-wide">Client Overall Performance</h3>
@@ -259,7 +263,8 @@
                     </div>
 
                     <!-- Auditor Summary Tab -->
-                    <div id="perf-auditor-view" class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 h-full" id="perf-auditor-container">
+                    <div id="perf-auditor-view" class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50">
+                        <div id="perf-auditor-container" class="space-y-6"></div>
                     </div>
                 </div>
             </div>
@@ -270,7 +275,7 @@
     <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
             <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Message</h3>
-            <p id="modal-msg" class="text-slate-600 mb-6 whitespace-pre-wrap"></p>
+            <p id="modal-msg" class="text-slate-600 mb-6 whitespace-pre-wrap text-sm leading-relaxed"></p>
             <div class="flex justify-end gap-3" id="modal-actions">
                 <button onclick="ui.closeModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg font-medium">OK</button>
             </div>
@@ -280,9 +285,8 @@
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
     <script type="module">
-        // --- FIREBASE INITIALIZATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
@@ -293,29 +297,34 @@
             appId: "1:697360208233:web:d4a14da5b7acd9577b6df8"
         };
         
+        let db = null;
         try {
             const appFirebase = initializeApp(firebaseConfig);
-            const db = getFirestore(appFirebase);
+            db = getFirestore(appFirebase);
             const dbStatusEl = document.getElementById('db-status');
-            if(dbStatusEl) {
+            if (dbStatusEl) {
                 dbStatusEl.innerText = "Connected to Database";
                 dbStatusEl.className = "text-green-500 font-medium";
             }
-        } catch(e) {
+        } catch (e) {
             console.error("Firebase init failed:", e);
             const dbStatusEl = document.getElementById('db-status');
-            if(dbStatusEl) {
+            if (dbStatusEl) {
                 dbStatusEl.innerText = "Connection Failed";
                 dbStatusEl.className = "text-red-500 font-medium";
             }
         }
 
         const state = {
-            currentProfile: null, masterData: [], mappings: {}, perfResults: null
+            currentProfile: null,
+            masterData: [],
+            mappings: {},
+            perfResults: null
         };
 
         const engine = {
             parseTSV(text) {
+                if (!text) return [];
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
                 if (lines.length < 2) return [];
                 const headers = lines[0].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
@@ -340,7 +349,9 @@
                 if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
                 return null;
             },
-            normalizeText(str) { return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
+            normalizeText(str) { 
+                return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; 
+            },
             getWeekOneMonday(year, month) {
                 let firstOfMonth = new Date(year, month, 1);
                 let dayOfWeek = firstOfMonth.getDay();
@@ -368,6 +379,7 @@
             },
             login() {
                 const sel = document.getElementById('profile-select').value;
+                if (!sel) return this.showToast("Please select a profile.", "error");
                 if (sel === 'Admin' && document.getElementById('admin-password').value !== 'Cycle1') {
                     return this.showToast("Incorrect Admin password.", "error");
                 }
@@ -385,35 +397,46 @@
                 document.getElementById('nav-performance').style.display = isAdmin ? 'flex' : 'none';
                 
                 this.switchView(isAdmin ? 'view-performance' : 'view-reconcile');
-                
-                if (state.masterData.length === 0) {
-                    state.mappings = { 'MULALO.KHASHANE@SMOLLAN.COM': 'BONGANI GOODWILL SITHEBE', '83612': 'BONGANI GOODWILL SITHEBE', '29705': 'BONGANI GOODWILL SITHEBE' };
-                    state.masterData = [
-                        { EmployeeName: 'BONGANI GOODWILL SITHEBE', AS400StoreCode: '119044', StoreName: 'Shoprite Ennerdale', WeekNumber: 1, WeekDay: 'Thursday', LiptonIR: 1, RCLIR: 1, TBFSIR: 1 },
-                        { EmployeeName: 'BONGANI GOODWILL SITHEBE', AS400StoreCode: '119045', StoreName: 'Checkers Ennerdale', WeekNumber: 1, WeekDay: 'Friday', LiptonIR: 1, RCLIR: 0, TBFSIR: 0 }
-                    ];
-                }
+                this.syncDataFromFirestore();
             },
-            logout() { document.getElementById('login-view').classList.remove('hidden'); },
+            logout() { 
+                document.getElementById('login-view').classList.remove('hidden'); 
+            },
             switchView(viewId) {
                 document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
-                document.getElementById(viewId).classList.remove('hidden-view');
+                const target = document.getElementById(viewId);
+                if (target) target.classList.remove('hidden-view');
+
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('hover:bg-slate-800', 'text-slate-300');
+                });
+                const activeNav = document.getElementById(viewId.replace('view-', 'nav-'));
+                if (activeNav) {
+                    activeNav.classList.remove('hover:bg-slate-800', 'text-slate-300');
+                    activeNav.classList.add('bg-blue-600', 'text-white');
+                }
             },
             switchPerfTab(tab) {
+                const audView = document.getElementById('perf-auditor-view');
+                const cliView = document.getElementById('perf-client-view');
+                const tabAud = document.getElementById('tab-perf-auditor');
+                const tabCli = document.getElementById('tab-perf-client');
+                
                 if (tab === 'auditor') {
-                    document.getElementById('perf-auditor-view').classList.remove('hidden');
-                    document.getElementById('perf-auditor-view').classList.add('flex');
-                    document.getElementById('perf-client-view').classList.add('hidden');
-                    document.getElementById('perf-client-view').classList.remove('flex');
-                    document.getElementById('tab-perf-auditor').className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
-                    document.getElementById('tab-perf-client').className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
+                    audView.classList.remove('hidden');
+                    audView.classList.add('flex');
+                    cliView.classList.add('hidden');
+                    cliView.classList.remove('flex');
+                    tabAud.className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
+                    tabCli.className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
                 } else {
-                    document.getElementById('perf-auditor-view').classList.add('hidden');
-                    document.getElementById('perf-auditor-view').classList.remove('flex');
-                    document.getElementById('perf-client-view').classList.remove('hidden');
-                    document.getElementById('perf-client-view').classList.add('flex');
-                    document.getElementById('tab-perf-client').className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
-                    document.getElementById('tab-perf-auditor').className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
+                    audView.classList.add('hidden');
+                    audView.classList.remove('flex');
+                    cliView.classList.remove('hidden');
+                    cliView.classList.add('flex');
+                    tabCli.className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
+                    tabAud.className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
                 }
             },
             showModal(title, msg) {
@@ -430,6 +453,21 @@
                 t.innerText = msg;
                 c.appendChild(t);
                 setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
+            },
+            async syncDataFromFirestore() {
+                if (!db) return;
+                try {
+                    const masterDoc = await getDoc(doc(db, "tracker_config", "master_data"));
+                    if (masterDoc.exists() && masterDoc.data().records) {
+                        state.masterData = masterDoc.data().records;
+                    }
+                    const mapDoc = await getDoc(doc(db, "tracker_config", "employee_mappings"));
+                    if (mapDoc.exists() && mapDoc.data().mappings) {
+                        state.mappings = mapDoc.data().mappings;
+                    }
+                } catch (e) {
+                    console.warn("Firestore sync warning:", e);
+                }
             }
         };
 
@@ -455,14 +493,16 @@
             },
             
             executePerformance() {
-                if (!state.masterData || state.masterData.length === 0) return ui.showModal("Error", "Please load Master Data first.");
+                if (!state.masterData || state.masterData.length === 0) {
+                    return ui.showModal("Master Data Required", "Please load Master Data first or verify database connection.");
+                }
                 
-                const tbfsTxt = document.getElementById('perf-paste-tbfs').value;
-                const rclTxt = document.getElementById('perf-paste-rcl').value;
-                const liptonTxt = document.getElementById('perf-paste-lipton').value;
+                const tbfsTxt = (document.getElementById('perf-paste-tbfs')?.value || '').trim();
+                const rclTxt = (document.getElementById('perf-paste-rcl')?.value || '').trim();
+                const liptonTxt = (document.getElementById('perf-paste-lipton')?.value || '').trim();
                 
-                if (!tbfsTxt.trim() && !rclTxt.trim() && !liptonTxt.trim()) {
-                    return ui.showModal("Error", "Please paste at least one IR Report.");
+                if (!tbfsTxt && !rclTxt && !liptonTxt) {
+                    return ui.showModal("Input Required", "Please paste at least one IR Report (TBFS, RCL, or Lipton).");
                 }
 
                 document.getElementById('perf-status-msg').innerText = "Processing...";
@@ -489,11 +529,17 @@
                         }
                         return null;
                     };
+                    
                     const resM = findMonth(tbfsActuals) || findMonth(rclActuals) || findMonth(liptonActuals);
                     if (!resM) throw new Error("Could not detect any valid dates in the uploaded reports to establish a reporting month.");
-                    engineYear = resM.y; engineMonth = resM.m; monthName = resM.name;
+                    engineYear = resM.y; 
+                    engineMonth = resM.m; 
+                    monthName = resM.name;
                     
-                    document.getElementById('perf-reporting-period-banner').innerText = `Reporting Period: 1 ${monthName.split(' ')[0]} ${engineYear} – ${new Date(engineYear, engineMonth + 1, 0).getDate()} ${monthName}`;
+                    const periodBanner = document.getElementById('perf-reporting-period-banner');
+                    if (periodBanner) {
+                        periodBanner.innerText = `Reporting Period: 1 ${monthName.split(' ')[0]} ${engineYear} – ${new Date(engineYear, engineMonth + 1, 0).getDate()} ${monthName}`;
+                    }
 
                     const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-lipton-cb:checked')).map(cb => cb.value);
 
@@ -532,30 +578,28 @@
                                 }
                             }
                         };
-                        pushPlan('TBFS', m.TBFSIR); pushPlan('RCL', m.RCLIR); pushPlan('Lipton', m.LiptonIR);
+                        pushPlan('TBFS', m.TBFSIR); 
+                        pushPlan('RCL', m.RCLIR); 
+                        pushPlan('Lipton', m.LiptonIR);
                     });
 
                     const capturedStoresMap = {}; 
                     const unexpectedStoresMap = {}; 
 
                     const processActuals = (arr, clientName) => {
-                        let totalRead = arr.length, validDate = 0, validStore = 0, mappedAud = 0;
-
                         arr.forEach(act => {
                             const rawDate = getExactVal(act, ['date']);
                             const date = engine.parseDate(rawDate);
                             if (!date || date.getFullYear() !== engineYear || date.getMonth() !== engineMonth) return;
-                            validDate++;
 
-                            // STRICT FIX: ONLY use storecode. Ignore storeid.
+                            // EXACT MATCH: Match against AS400StoreCode (storecode)
                             const rawCode = getExactVal(act, ['storecode']);
                             const codeVal = rawCode ? String(rawCode).trim() : null;
                             if (!codeVal) return;
-                            validStore++;
 
                             let rawLogin = getExactVal(act, ['loginid']);
                             if (!rawLogin) rawLogin = getExactVal(act, ['userid', 'capturer', 'username']);
-                            const mappedEmp = rawLogin ? state.mappings[rawLogin] : null;
+                            const mappedEmp = rawLogin ? (state.mappings[rawLogin] || state.mappings[rawLogin.trim()]) : null;
                             
                             if (!mappedEmp) {
                                 exportDetails.review.push({
@@ -565,7 +609,6 @@
                                 return;
                             }
                             const normEmp = engine.normalizeText(mappedEmp);
-                            mappedAud++;
 
                             if (!capturedStoresMap[normEmp]) capturedStoresMap[normEmp] = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
                             if (!unexpectedStoresMap[normEmp]) unexpectedStoresMap[normEmp] = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
@@ -589,10 +632,6 @@
                                 }
                             }
                         });
-
-                        if (totalRead > 0 && mappedAud === 0) {
-                            console.warn(`[Diagnostic ${clientName}] Read ${totalRead} rows. ${validDate} valid dates. ${validStore} valid store codes. ${mappedAud} mapped auditors. Check your loginId mapping.`);
-                        }
                     };
 
                     processActuals(tbfsActuals, 'TBFS');
@@ -669,7 +708,10 @@
                         auditorSummaryHtml.push(html);
                     });
                     
-                    document.getElementById('perf-auditor-container').innerHTML = auditorSummaryHtml.join('');
+                    const audContainer = document.getElementById('perf-auditor-container');
+                    if (audContainer) {
+                        audContainer.innerHTML = auditorSummaryHtml.join('');
+                    }
 
                     let cHtml = '';
                     let gP = 0, gC = 0, gU = 0;
@@ -705,11 +747,18 @@
                         <td class="p-4 font-bold text-red-600 text-right">${gOut}</td>
                         <td class="p-4 font-black text-blue-700 text-right">${gComp}%</td>
                     </tr>`;
-                    document.getElementById('perf-client-tbody').innerHTML = cHtml;
+                    
+                    const clientTbody = document.getElementById('perf-client-tbody');
+                    if (clientTbody) {
+                        clientTbody.innerHTML = cHtml;
+                    }
 
                     const diff = totalAuditorAssignments - uniquePhysicalStores.size;
                     const valMsg = `<strong>Reconciliation Validation:</strong> The Client Totals table correctly reflects <strong>${totalAuditorAssignments}</strong> planned auditor assignments across <strong>${uniquePhysicalStores.size}</strong> unique physical stores. ${diff > 0 ? `The difference of <strong>${diff}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors.` : ''}`;
-                    document.getElementById('client-recon-validation-banner').innerHTML = valMsg;
+                    const valBanner = document.getElementById('client-recon-validation-banner');
+                    if (valBanner) {
+                        valBanner.innerHTML = valMsg;
+                    }
 
                     document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
                     document.getElementById('perf-results').classList.remove('hidden');
@@ -717,6 +766,7 @@
                     state.perfResults = { trackingSets: { validPlannedKeys }, details: exportDetails };
 
                 } catch (e) {
+                    console.error("Calculation failure:", e);
                     document.getElementById('perf-status-msg').innerText = "Processing failed.";
                     ui.showModal("Error calculating performance", e.message);
                 }
@@ -727,7 +777,7 @@
 
                 ui.showToast("Generating Excel report... Please wait.", "info");
                 const btn = document.getElementById('btn-export-perf');
-                if(btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
+                if (btn) { btn.disabled = true; btn.innerText = "Generating..."; }
 
                 setTimeout(() => {
                     try {
@@ -736,12 +786,10 @@
                         
                         const audHeaders = ["Auditor", "Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"];
                         let audData = [audHeaders];
-                        const audRows = document.querySelectorAll('#perf-auditor-container tr:not(.bg-slate-50)');
-                        let currentAud = "";
-                        document.querySelectorAll('#perf-auditor-container h3').forEach((h3, i) => {
-                            currentAud = h3.innerText;
-                            const tableBody = h3.nextElementSibling.querySelector('tbody');
-                            const rows = tableBody.querySelectorAll('tr:not(.bg-slate-50)');
+                        document.querySelectorAll('#perf-auditor-container h3').forEach((h3) => {
+                            const currentAud = h3.innerText;
+                            const table = h3.nextElementSibling.querySelector('table');
+                            const rows = table.querySelectorAll('tbody tr:not(.bg-slate-50)');
                             rows.forEach(r => {
                                 const cells = r.querySelectorAll('td');
                                 audData.push([currentAud, cells[0].innerText, parseInt(cells[1].innerText), parseInt(cells[2].innerText), parseInt(cells[3].innerText), parseInt(cells[4].innerText), parseInt(cells[5].innerText), cells[6].innerText]);
@@ -783,7 +831,7 @@
                         console.error("Export Error:", e);
                         ui.showModal("Export Failed", "An error occurred while generating the Excel file.");
                     } finally {
-                        if(btn) { 
+                        if (btn) { 
                             btn.disabled = false; 
                             btn.innerHTML = `<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Download Excel Report`;
                         }
