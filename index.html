@@ -362,20 +362,39 @@
                             <span id="perf-status-msg" class="text-sm font-medium text-slate-600">Awaiting reports...</span>
                             <button onclick="app.runPerformance()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors">Calculate Performance</button>
                         </div>
+                        
+                        <!-- Month Selector Overlay (Hidden by Default) -->
+                        <div id="perf-month-container" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
+                            <label class="block text-sm font-bold text-blue-800 mb-2">Multiple Reporting Months Detected</label>
+                            <p class="text-xs text-blue-700 mb-3">Please select which exact reporting month to process for this analysis to prevent mixed data:</p>
+                            <div class="flex gap-2">
+                                <select id="perf-month-select" class="border border-blue-300 rounded p-2 text-sm flex-1 font-medium text-slate-700 bg-white focus:ring-blue-500"></select>
+                                <button onclick="app.executePerformance(document.getElementById('perf-month-select').value)" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded font-medium shadow-sm transition-colors">Confirm & Calculate Month</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Results Area -->
                 <div id="perf-results" class="hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
-                    <div class="flex justify-between items-center p-4 border-b border-slate-200 bg-slate-50">
-                        <h3 class="font-bold text-slate-800">Performance Summary</h3>
+                    <div class="flex justify-between items-center p-4 bg-white border-b border-slate-200">
+                        <div class="flex space-x-6">
+                            <button onclick="app.switchPerfTab('auditor')" id="btn-perf-auditor" class="font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors">Auditor Summary</button>
+                            <button onclick="app.switchPerfTab('client')" id="btn-perf-client" class="font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors">Client Summary</button>
+                        </div>
                         <button onclick="app.exportPerformance()" class="bg-green-600 hover:bg-green-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             Download Excel Report
                         </button>
                     </div>
+                    <div id="perf-period-display" class="bg-slate-100 text-slate-700 font-bold text-center py-2 text-sm border-b border-slate-200 tracking-wide">
+                        <!-- Populated dynamically -->
+                    </div>
                     <div id="perf-summary-container" class="flex-1 overflow-auto p-4 bg-slate-50">
                         <!-- Auditor groups populated dynamically -->
+                    </div>
+                    <div id="perf-client-container" class="hidden flex-1 overflow-auto p-4 bg-slate-50">
+                        <!-- Client totals populated dynamically -->
                     </div>
                 </div>
             </div>
@@ -1220,8 +1239,27 @@
         window.app = {
             ...window.app, 
 
-            // -- NEW: AUDITOR PERFORMANCE LOGIC (UPDATED RETAILER FILTER) --
+            // -- AUDITOR PERFORMANCE LOGIC --
             
+            switchPerfTab(tab) {
+                const audBtn = document.getElementById('btn-perf-auditor');
+                const cliBtn = document.getElementById('btn-perf-client');
+                const audCont = document.getElementById('perf-summary-container');
+                const cliCont = document.getElementById('perf-client-container');
+                
+                if (tab === 'auditor') {
+                    audBtn.className = 'font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors';
+                    cliBtn.className = 'font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors';
+                    audCont.classList.remove('hidden');
+                    cliCont.classList.add('hidden');
+                } else {
+                    cliBtn.className = 'font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors';
+                    audBtn.className = 'font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors';
+                    cliCont.classList.remove('hidden');
+                    audCont.classList.add('hidden');
+                }
+            },
+
             filterRetailers() {
                 const query = document.getElementById('perf-retailer-search').value.toLowerCase();
                 document.querySelectorAll('.retailer-item').forEach(item => {
@@ -1270,8 +1308,9 @@
                     return ui.showModal("Error", "Please paste at least one client report to calculate performance.");
                 }
 
-                document.getElementById('perf-status-msg').innerText = "Processing performance... Please wait.";
+                document.getElementById('perf-status-msg').innerText = "Analyzing dates... Please wait.";
                 document.getElementById('perf-results').classList.add('hidden');
+                document.getElementById('perf-month-container').classList.add('hidden');
                 
                 try {
                     const req = ['Date', 'storeCode'];
@@ -1280,19 +1319,80 @@
                     if (rclTxt) rclActuals = engine.parseTSV(rclTxt, req);
                     if (liptonTxt) liptonActuals = engine.parseTSV(liptonTxt, req);
 
-                    const monthsSet = new Set();
-                    [...tbfsActuals, ...rclActuals, ...liptonActuals].forEach(r => {
+                    const allActuals = [...tbfsActuals, ...rclActuals, ...liptonActuals];
+                    const monthMap = new Map();
+
+                    // Detect exact months from the report Date columns
+                    allActuals.forEach(r => {
                         let d = engine.parseDate(r.Date);
-                        if (d) monthsSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+                        if (d) {
+                            let y = d.getFullYear();
+                            let m = d.getMonth() + 1; // 1-12 format
+                            let key = `${y}-${m.toString().padStart(2, '0')}`;
+                            if (!monthMap.has(key)) {
+                                monthMap.set(key, d.toLocaleString('en-US', {month: 'long', year: 'numeric'}));
+                            }
+                        }
                     });
 
-                    if (monthsSet.size === 0) throw new Error("No valid dates found in the uploaded reports to calculate the master schedule dates.");
+                    if (monthMap.size === 0) {
+                        throw new Error("No valid dates found in the uploaded reports. Cannot determine the reporting month.");
+                    }
 
-                    // Determine selected Lipton Retailers
+                    // Store raw parsed reports temporarily
+                    state.tempPerfActuals = { tbfs: tbfsActuals, rcl: rclActuals, lipton: liptonActuals };
+
+                    if (monthMap.size > 1) {
+                        // Ask user to isolate calculation to a single month securely
+                        const select = document.getElementById('perf-month-select');
+                        select.innerHTML = Array.from(monthMap.entries())
+                            .sort((a,b) => b[0].localeCompare(a[0])) // Descending
+                            .map(([k, v]) => `<option value="${k}">${v}</option>`)
+                            .join('');
+                        document.getElementById('perf-month-container').classList.remove('hidden');
+                        document.getElementById('perf-status-msg').innerText = "Multiple reporting months found. Waiting for selection.";
+                    } else {
+                        // Automatically proceed if only 1 unified month is detected
+                        const singleMonthKey = Array.from(monthMap.keys())[0];
+                        this.executePerformance(singleMonthKey);
+                    }
+
+                } catch(e) {
+                    document.getElementById('perf-status-msg').innerText = "Analysis failed.";
+                    ui.showModal("Error analyzing reports", e.message);
+                }
+            },
+
+            executePerformance(targetMonthKey) {
+                document.getElementById('perf-month-container').classList.add('hidden');
+                document.getElementById('perf-status-msg').innerText = "Processing performance... Please wait.";
+                
+                try {
+                    const [ty, tm] = targetMonthKey.split('-').map(Number);
+                    const engineMonth = tm - 1; // 0-indexed for Date math
+                    
+                    // Format period display visually
+                    const lastDay = new Date(ty, engineMonth + 1, 0).getDate();
+                    const monthNameOnly = new Date(ty, engineMonth, 1).toLocaleString('en-US', {month: 'long'});
+                    const periodString = `Reporting Period: 1 ${monthNameOnly} ${ty} – ${lastDay} ${monthNameOnly} ${ty}`;
+                    document.getElementById('perf-period-display').innerText = periodString;
+
+                    // Filter actual uploads strictly bounded to the selected month
+                    const filterByMonth = (actuals) => {
+                        return actuals.filter(r => {
+                            let d = engine.parseDate(r.Date);
+                            return d && d.getFullYear() === ty && d.getMonth() === engineMonth;
+                        });
+                    };
+
+                    const tbfsActuals = filterByMonth(state.tempPerfActuals.tbfs);
+                    const rclActuals = filterByMonth(state.tempPerfActuals.rcl);
+                    const liptonActuals = filterByMonth(state.tempPerfActuals.lipton);
+
                     const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
                     let liptonUnclassifiedCount = 0;
 
-                    // Build dynamic expected pool for each client based on the master data and detected dates
+                    // Build dynamic expected pool bounded tightly to the selected month
                     const buildExpectedPool = (clientField) => {
                         let pool = [];
                         const masterFilter = state.masterData.filter(m => String(m[clientField]) === '1' || String(m[clientField]).toLowerCase() === 'true');
@@ -1300,7 +1400,6 @@
                             let isValid = true;
                             let forceReview = false;
 
-                            // Lipton Filtering Logic
                             if (clientField === 'LiptonIR') {
                                 const retailer = this.classifyRetailer(m.StoreName);
                                 if (selectedLiptonRetailers.includes(retailer)) {
@@ -1310,16 +1409,16 @@
                                     forceReview = true;
                                     liptonUnclassifiedCount++;
                                 } else {
-                                    isValid = false; // Intentionally excluded based on filter
+                                    isValid = false; 
                                 }
                             }
 
                             if (isValid) {
-                                monthsSet.forEach(mo => {
-                                    const [y, mm] = mo.split('-');
-                                    let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
-                                    if (d) pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _forceReview: forceReview });
-                                });
+                                let d = engine.getExpectedDate(ty, engineMonth, Number(m.WeekNumber), m.WeekDay);
+                                // Ensure strict match: Only add stores genuinely scheduled for THIS specific calendar month
+                                if (d && d.getMonth() === engineMonth) {
+                                    pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _forceReview: forceReview });
+                                }
                             }
                         });
                         return pool;
@@ -1333,7 +1432,6 @@
                     const rclRes = engine.run(rclActuals, 'RCL', rclExpected);
                     const liptonRes = engine.run(liptonActuals, 'Lipton', liptonExpected);
 
-                    // Aggregate performance data by Auditor + Client
                     const perfMap = new Map(); // Key: EmployeeName_Client
 
                     const processRun = (res, clientName) => {
@@ -1399,7 +1497,6 @@
                     if (rclTxt) processRun(rclRes, 'RCL');
                     if (liptonTxt) processRun(liptonRes, 'Lipton');
 
-                    // Warn for unclassified Lipton stores
                     const warnDiv = document.getElementById('perf-lipton-warning');
                     if (liptonUnclassifiedCount > 0) {
                         warnDiv.classList.remove('hidden');
@@ -1408,9 +1505,7 @@
                         warnDiv.classList.add('hidden');
                     }
 
-                    // Compile Summary
                     const summary = [];
-                    
                     const sortedKeys = Array.from(perfMap.keys()).sort();
                     sortedKeys.forEach(k => {
                         const d = perfMap.get(k);
@@ -1424,9 +1519,8 @@
                         summary.push({ ...d, plannedCount, capturedCount, outstanding, completion });
                     });
 
-                    state.perfCompiledResults = { summary, map: perfMap, raw: { tbfs: tbfsRes, rcl: rclRes, lipton: liptonRes } };
+                    state.perfCompiledResults = { summary, map: perfMap, raw: { tbfs: tbfsRes, rcl: rclRes, lipton: liptonRes }, periodString };
 
-                    // Render summary grouped by Auditor
                     const container = document.getElementById('perf-summary-container');
                     let summaryHTML = '';
                     
@@ -1488,7 +1582,87 @@
                         </div>`;
                     });
 
-                    container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated.</div>`;
+                    container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated for the selected month.</div>`;
+
+                    // --- NEW: Client Summary Generation ---
+                    const clientTotals = { 
+                        TBFS: { planned: new Set(), captured: new Set() }, 
+                        RCL: { planned: new Set(), captured: new Set() }, 
+                        Lipton: { planned: new Set(), captured: new Set() } 
+                    };
+                    
+                    perfMap.forEach((data) => {
+                        if (data.unexpectedOnly || !clientTotals[data.client]) return;
+                        data.planned.forEach(s => clientTotals[data.client].planned.add(s));
+                        data.captured.forEach(s => clientTotals[data.client].captured.add(s));
+                    });
+
+                    let grandPlanned = 0, grandCaptured = 0;
+                    let clientRowsHtml = '';
+                    
+                    ['RCL', 'Lipton', 'TBFS'].forEach(client => {
+                        const p = clientTotals[client].planned.size;
+                        const c = clientTotals[client].captured.size;
+                        const o = p - c;
+                        const comp = p > 0 ? Math.round((c / p) * 100) : 0;
+                        
+                        grandPlanned += p;
+                        grandCaptured += c;
+                        
+                        let clientLabel = client;
+                        if(client === 'Lipton' && selectedLiptonRetailers.length > 0 && selectedLiptonRetailers.length < 6) {
+                            clientLabel = `Lipton <span class="text-xs font-normal text-slate-500 ml-1">(Filtered: ${selectedLiptonRetailers.length} retailers)</span>`;
+                        }
+
+                        clientRowsHtml += `<tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="p-3 font-medium text-slate-700">${clientLabel}</td>
+                            <td class="p-3 text-right">${p}</td>
+                            <td class="p-3 text-right text-green-600 font-medium">${c}</td>
+                            <td class="p-3 text-right text-red-500 font-medium">${o}</td>
+                            <td class="p-3 text-right font-bold text-blue-600">${comp}%</td>
+                        </tr>`;
+                    });
+                    
+                    const grandOutstanding = grandPlanned - grandCaptured;
+                    const grandComp = grandPlanned > 0 ? Math.round((grandCaptured / grandPlanned) * 100) : 0;
+
+                    const clientContainer = document.getElementById('perf-client-container');
+                    clientContainer.innerHTML = `
+                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden max-w-4xl mx-auto mt-4">
+                            <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
+                                <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">Client Overall Performance</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
+                                    <thead class="bg-white">
+                                        <tr>
+                                            <th class="p-3 font-medium text-slate-600 w-1/4">Client</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Planned Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Captured Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Outstanding</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Completion %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        ${clientRowsHtml}
+                                    </tbody>
+                                    <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+                                        <tr>
+                                            <td class="p-3 font-bold text-slate-800">ALL CLIENTS TOTAL</td>
+                                            <td class="p-3 text-right font-bold text-slate-800">${grandPlanned}</td>
+                                            <td class="p-3 text-right font-bold text-green-700">${grandCaptured}</td>
+                                            <td class="p-3 text-right font-bold text-red-600">${grandOutstanding}</td>
+                                            <td class="p-3 text-right font-bold text-blue-800 text-base">${grandComp}%</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    
+                    state.perfCompiledResults.clientTotals = { clientTotals, grandPlanned, grandCaptured, grandOutstanding, grandComp };
+
+                    app.switchPerfTab('auditor'); // Reset view to Auditor tab automatically
 
                     document.getElementById('perf-results').classList.remove('hidden');
                     document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
@@ -1505,8 +1679,11 @@
                 
                 const wb = XLSX.utils.book_new();
                 
-                // 1. Summary Sheet
-                const summaryAoa = [["Auditor", "Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]];
+                const summaryAoa = [
+                    [`${state.perfCompiledResults.periodString}`],
+                    [],
+                    ["Auditor", "Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]
+                ];
                 
                 const auditorGroups = {};
                 state.perfCompiledResults.summary.forEach(r => {
@@ -1531,7 +1708,30 @@
 
                 const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
                 summaryWs['!cols'] = [{wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 15}];
-                XLSX.utils.book_append_sheet(wb, summaryWs, "1. Performance Summary");
+                XLSX.utils.book_append_sheet(wb, summaryWs, "1. Auditor Summary");
+                
+                // --- Client Summary Export ---
+                const clientAoa = [
+                    [`${state.perfCompiledResults.periodString}`],
+                    [],
+                    ["Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]
+                ];
+                
+                ['RCL', 'Lipton', 'TBFS'].forEach(client => {
+                    const cT = state.perfCompiledResults.clientTotals.clientTotals[client];
+                    const p = cT.planned.size;
+                    const c = cT.captured.size;
+                    const o = p - c;
+                    const comp = p > 0 ? Math.round((c / p) * 100) : 0;
+                    clientAoa.push([client, p, c, o, `${comp}%`]);
+                });
+                
+                const gT = state.perfCompiledResults.clientTotals;
+                clientAoa.push(["ALL CLIENTS TOTAL", gT.grandPlanned, gT.grandCaptured, gT.grandOutstanding, `${gT.grandComp}%`]);
+                
+                const clientWs = XLSX.utils.aoa_to_sheet(clientAoa);
+                clientWs['!cols'] = [{wch: 25}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 15}];
+                XLSX.utils.book_append_sheet(wb, clientWs, "2. Client Summary");
 
                 const plannedDetails = [];
                 const outstandingStores = [];
@@ -1574,14 +1774,13 @@
                     XLSX.utils.book_append_sheet(wb, ws, sheetName);
                 };
 
-                addSheet(plannedDetails, "2. Planned Store Details");
-                addSheet(outstandingStores, "3. Outstanding Stores");
-                addSheet(unexpectedCaptures, "4. Unexpected Captures");
-                addSheet(needsReview, "5. Needs Review");
+                addSheet(plannedDetails, "3. Planned Store Details");
+                addSheet(outstandingStores, "4. Outstanding Stores");
+                addSheet(unexpectedCaptures, "5. Unexpected Captures");
+                addSheet(needsReview, "6. Needs Review");
                 
-                // 6. Processing summary generic status
                 const procSummary = [{"Status": "Success", "Message": "All provided records were processed into the above sheets successfully."}];
-                addSheet(procSummary, "6. Processing Summary");
+                addSheet(procSummary, "7. Processing Summary");
 
                 const dateStr = new Date().toISOString().split('T')[0];
                 XLSX.writeFile(wb, `Auditor_Performance_Report_${dateStr}.xlsx`);
