@@ -67,13 +67,17 @@
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                 Reconciliation
             </button>
-            <button onclick="ui.switchView('view-master')" id="nav-master" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+            <button onclick="ui.switchView('view-master')" id="nav-master" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800" style="display: none;">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                 Master Data <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
             </button>
-            <button onclick="ui.switchView('view-mappings')" id="nav-mappings" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+            <button onclick="ui.switchView('view-mappings')" id="nav-mappings" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800" style="display: none;">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 Employee Map <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
+            </button>
+            <button onclick="ui.switchView('view-performance')" id="nav-performance" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800" style="display: none;">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                Auditor Performance <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
             </button>
             <button onclick="ui.switchView('view-history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -105,8 +109,9 @@
             <div class="flex items-center gap-3">
                 <select id="mobile-nav" class="bg-slate-800 text-sm rounded border border-slate-700 px-2 py-1" onchange="ui.switchView(this.value)">
                     <option value="view-reconcile">Reconciliation</option>
-                    <option value="view-master" id="mobile-nav-master">Master Data</option>
-                    <option value="view-mappings" id="mobile-nav-mappings">Employee Map</option>
+                    <option value="view-master" id="mobile-nav-master" style="display: none;">Master Data</option>
+                    <option value="view-mappings" id="mobile-nav-mappings" style="display: none;">Employee Map</option>
+                    <option value="view-performance" id="mobile-nav-performance" style="display: none;">Auditor Performance</option>
                     <option value="view-history">History</option>
                     <option value="view-consolidated">Consolidated Report</option>
                 </select>
@@ -269,6 +274,125 @@
                         </div>
                         <div class="flex-1 overflow-auto p-0 relative">
                             <div id="results-table-container" class="absolute inset-0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auditor Performance View -->
+            <div id="view-performance" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Auditor Performance</h2>
+                        <p class="text-slate-500 text-sm mt-1">Upload multiple IR Image reports to calculate accurate completion percentages derived exactly from the Master Call Cycle.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Lipton Retailer Selector (NEW) -->
+                    <div class="col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-20 overflow-visible">
+                        <h3 class="font-bold text-slate-800 mb-2">Lipton Retailer Filter</h3>
+                        <p class="text-xs text-slate-500 mb-3">Filter planned Lipton stores by retailer directly from Master Data. Unclassified stores are flagged for review.</p>
+                        
+                        <div class="relative text-left w-full mb-2">
+                            <button type="button" onclick="document.getElementById('retailer-dropdown').classList.toggle('hidden')" class="inline-flex justify-between items-center w-full rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span id="retailer-btn-text">6 Retailers Selected</span>
+                                <svg class="-mr-1 ml-2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                            
+                            <div id="retailer-dropdown" class="absolute left-0 mt-1 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden" style="z-index: 50;">
+                                <div class="p-2 border-b border-slate-100">
+                                    <input type="text" id="perf-retailer-search" onkeyup="app.filterRetailers()" placeholder="Search retailers..." class="w-full text-xs p-2 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div class="p-2 max-h-48 overflow-y-auto" id="retailer-list">
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="Checkers" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">Checkers</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="Shoprite" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">Shoprite</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="SPAR" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">SPAR</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="SUPERSPAR" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">SUPERSPAR</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="Pick n Pay" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">Pick n Pay</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded retailer-item cursor-pointer">
+                                        <input type="checkbox" value="Makro" class="perf-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.updateRetailerCount()"> 
+                                        <span class="text-sm font-medium text-slate-700">Makro</span>
+                                    </label>
+                                </div>
+                                <div class="p-2 border-t border-slate-100 flex justify-between text-xs bg-slate-50 rounded-b-md">
+                                    <button onclick="app.toggleAllRetailers(true)" class="text-blue-600 font-medium hover:underline">Select All</button>
+                                    <button onclick="app.toggleAllRetailers(false)" class="text-blue-600 font-medium hover:underline">Clear Selection</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="perf-lipton-warning" class="hidden mt-auto p-3 bg-orange-50 border-l-4 border-orange-400 text-xs text-orange-800 rounded"></div>
+                    </div>
+
+                    <!-- Report Uploads -->
+                    <div class="col-span-1 lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-10">
+                        <h3 class="font-bold text-slate-800 mb-2">Upload IR Reports</h3>
+                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below. They will be processed together against the call cycle mapping.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-slate-600 mb-1">TBFS Report</label>
+                                <textarea id="perf-paste-tbfs" class="flex-1 w-full border border-slate-300 rounded p-2 text-xs h-32 focus:ring-blue-500 focus:border-blue-500" placeholder="Paste TBFS TSV..."></textarea>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-slate-600 mb-1">RCL Report</label>
+                                <textarea id="perf-paste-rcl" class="flex-1 w-full border border-slate-300 rounded p-2 text-xs h-32 focus:ring-blue-500 focus:border-blue-500" placeholder="Paste RCL TSV..."></textarea>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-slate-600 mb-1">Lipton Report</label>
+                                <textarea id="perf-paste-lipton" class="flex-1 w-full border border-slate-300 rounded p-2 text-xs h-32 focus:ring-blue-500 focus:border-blue-500" placeholder="Paste Lipton TSV..."></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span id="perf-status-msg" class="text-sm font-medium text-slate-600">Awaiting reports...</span>
+                            <button onclick="app.runPerformance()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors">Calculate Performance</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Area -->
+                <div id="perf-results" class="hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
+                    <div class="flex justify-between items-center p-4 border-b border-slate-200 bg-slate-50">
+                        <h3 class="font-bold text-slate-800">Performance Summary</h3>
+                        <button onclick="app.exportPerformance()" class="bg-green-600 hover:bg-green-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Download Excel Report
+                        </button>
+                    </div>
+                    <div id="perf-summary-container" class="flex-1 overflow-auto p-4 bg-slate-50">
+                        <!-- Auditor groups populated dynamically -->
+                    </div>
+                    
+                    <div class="p-4 border-t border-slate-200 bg-slate-50">
+                        <h4 class="font-bold text-slate-700 text-sm mb-2">Planned Store Detail Preview</h4>
+                        <div class="max-h-48 overflow-y-auto border border-slate-200 rounded bg-white">
+                             <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
+                                <thead class="bg-slate-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-2 text-slate-600 font-medium">Auditor</th>
+                                        <th class="p-2 text-slate-600 font-medium">Code</th>
+                                        <th class="p-2 text-slate-600 font-medium">Name</th>
+                                        <th class="p-2 text-slate-600 font-medium">Status</th>
+                                        <th class="p-2 text-slate-600 font-medium">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="perf-details-tbody" class="divide-y divide-slate-100"></tbody>
+                             </table>
                         </div>
                     </div>
                 </div>
@@ -523,7 +647,8 @@
             lastResults: null,
             historyData: [],
             dbReady: false,
-            user: null
+            user: null,
+            perfCompiledResults: null
         };
 
         let db, auth;
@@ -621,6 +746,7 @@
                 snapshot.forEach(doc => { if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk)); });
                 state.masterData = loaded;
                 ui.renderMasterTable();
+                if(state.currentProfile === 'Admin') app.updateRetailerCount();
             } catch (e) { console.error("Load Master:", e); }
         }
 
@@ -816,7 +942,8 @@
                         storeCode: exp.AS400StoreCode || '',
                         storeName: exp.StoreName || '',
                         ExpectedEmployee: exp.EmployeeName || '',
-                        Client: client
+                        Client: client,
+                        _forceReview: exp._forceReview // Pass through from dynamic pools
                     };
 
                     if (!exp._isValidCode) {
@@ -906,8 +1033,10 @@
                 const isAdmin = profileName === 'Admin';
                 document.getElementById('nav-master').style.display = isAdmin ? 'flex' : 'none';
                 document.getElementById('nav-mappings').style.display = isAdmin ? 'flex' : 'none';
+                document.getElementById('nav-performance').style.display = isAdmin ? 'flex' : 'none';
                 document.getElementById('mobile-nav-master').style.display = isAdmin ? 'block' : 'none';
                 document.getElementById('mobile-nav-mappings').style.display = isAdmin ? 'block' : 'none';
+                document.getElementById('mobile-nav-performance').style.display = isAdmin ? 'block' : 'none';
 
                 this.switchView('view-reconcile');
 
@@ -918,6 +1047,8 @@
                     await loadHistory();
                     await loadWorkspaceState();
                     document.getElementById('loading-overlay').classList.replace('flex', 'hidden');
+                    
+                    if (isAdmin) app.updateRetailerCount();
                 }
             },
 
@@ -940,7 +1071,7 @@
             closeHistoryView() { this.resetReconView(); },
 
             switchView(viewId) {
-                if (state.currentProfile !== 'Admin' && (viewId === 'view-master' || viewId === 'view-mappings')) {
+                if (state.currentProfile !== 'Admin' && (viewId === 'view-master' || viewId === 'view-mappings' || viewId === 'view-performance')) {
                     return this.showToast("Admin access required.", "error");
                 }
                 document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
@@ -1105,6 +1236,382 @@
         };
 
         window.app = {
+            ...window.app, 
+
+            // -- NEW: AUDITOR PERFORMANCE LOGIC (UPDATED RETAILER FILTER) --
+            
+            filterRetailers() {
+                const query = document.getElementById('perf-retailer-search').value.toLowerCase();
+                document.querySelectorAll('.retailer-item').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? 'flex' : 'none';
+                });
+            },
+
+            toggleAllRetailers(isChecked) {
+                document.querySelectorAll('.perf-retailer-cb').forEach(cb => {
+                    // Only check visible ones if they are typing in search, else all
+                    if (cb.closest('.retailer-item').style.display !== 'none') {
+                        cb.checked = isChecked;
+                    }
+                });
+                this.updateRetailerCount();
+            },
+
+            updateRetailerCount() {
+                const count = document.querySelectorAll('.perf-retailer-cb:checked').length;
+                document.getElementById('retailer-btn-text').innerText = `${count} Retailer${count !== 1 ? 's' : ''} Selected`;
+            },
+
+            classifyRetailer(storeName) {
+                if (!storeName) return "Unknown";
+                const name = engine.normalizeText(storeName);
+                if (/\bsuperspar\b/.test(name) || /\bsuper spar\b/.test(name)) return "SUPERSPAR";
+                if (/\bspar\b/.test(name)) return "SPAR";
+                if (/\bcheckers\b/.test(name)) return "Checkers";
+                if (/\bshoprite\b/.test(name)) return "Shoprite";
+                if (/\bpick\s*n\s*pay\b/.test(name) || /\bpnp\b/.test(name) || /\bpick\s*and\s*pay\b/.test(name)) return "Pick n Pay";
+                if (/\bmakro\b/.test(name)) return "Makro";
+                return "Unknown";
+            },
+
+            runPerformance() {
+                if (!state.masterData || state.masterData.length === 0) {
+                    return ui.showModal("Error", "Master Call Cycle data is required to run Auditor Performance. Please upload it in Master Data.");
+                }
+
+                const tbfsTxt = document.getElementById('perf-paste-tbfs').value.trim();
+                const rclTxt = document.getElementById('perf-paste-rcl').value.trim();
+                const liptonTxt = document.getElementById('perf-paste-lipton').value.trim();
+
+                if (!tbfsTxt && !rclTxt && !liptonTxt) {
+                    return ui.showModal("Error", "Please paste at least one client report to calculate performance.");
+                }
+
+                document.getElementById('perf-status-msg').innerText = "Processing performance... Please wait.";
+                document.getElementById('perf-results').classList.add('hidden');
+                
+                try {
+                    const req = ['Date', 'storeCode'];
+                    let tbfsActuals = [], rclActuals = [], liptonActuals = [];
+                    if (tbfsTxt) tbfsActuals = engine.parseTSV(tbfsTxt, req);
+                    if (rclTxt) rclActuals = engine.parseTSV(rclTxt, req);
+                    if (liptonTxt) liptonActuals = engine.parseTSV(liptonTxt, req);
+
+                    const monthsSet = new Set();
+                    [...tbfsActuals, ...rclActuals, ...liptonActuals].forEach(r => {
+                        let d = engine.parseDate(r.Date);
+                        if (d) monthsSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+                    });
+
+                    if (monthsSet.size === 0) throw new Error("No valid dates found in the uploaded reports to calculate the master schedule dates.");
+
+                    // Determine selected Lipton Retailers
+                    const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
+                    let liptonUnclassifiedCount = 0;
+
+                    // Build dynamic expected pool for each client based on the master data and detected dates
+                    const buildExpectedPool = (clientField) => {
+                        let pool = [];
+                        const masterFilter = state.masterData.filter(m => String(m[clientField]) === '1' || String(m[clientField]).toLowerCase() === 'true');
+                        masterFilter.forEach(m => {
+                            let isValid = true;
+                            let forceReview = false;
+
+                            // Lipton Filtering Logic
+                            if (clientField === 'LiptonIR') {
+                                const retailer = this.classifyRetailer(m.StoreName);
+                                if (selectedLiptonRetailers.includes(retailer)) {
+                                    isValid = true;
+                                } else if (retailer === "Unknown") {
+                                    isValid = true;
+                                    forceReview = true;
+                                    liptonUnclassifiedCount++;
+                                } else {
+                                    isValid = false; // Intentionally excluded based on filter
+                                }
+                            }
+
+                            if (isValid) {
+                                monthsSet.forEach(mo => {
+                                    const [y, mm] = mo.split('-');
+                                    let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
+                                    if (d) pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _forceReview: forceReview });
+                                });
+                            }
+                        });
+                        return pool;
+                    };
+
+                    const tbfsExpected = buildExpectedPool('TBFSIR');
+                    const rclExpected = buildExpectedPool('RCLIR');
+                    const liptonExpected = buildExpectedPool('LiptonIR');
+
+                    const tbfsRes = engine.run(tbfsActuals, 'TBFS', tbfsExpected);
+                    const rclRes = engine.run(rclActuals, 'RCL', rclExpected);
+                    const liptonRes = engine.run(liptonActuals, 'Lipton', liptonExpected);
+
+                    // Aggregate performance data by Auditor + Client
+                    const perfMap = new Map(); // Key: EmployeeName_Client
+
+                    const processRun = (res, clientName) => {
+                        // Map all planned/expected stores first
+                        res.missing.concat(res.matched, res.wrongDay, res.review).forEach(r => {
+                            const emp = r.ExpectedEmployee || 'Unassigned';
+                            const key = `${emp}_${clientName}`;
+                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), details: [] });
+                            
+                            const data = perfMap.get(key);
+                            const storeId = r.storeCode;
+                            if (storeId) {
+                                let status = 'Outstanding';
+                                let comp = 0;
+
+                                if (r._forceReview) {
+                                    status = 'Needs Review (Unknown Retailer)';
+                                    comp = 0;
+                                    // Intentionally NOT adding to `data.planned` to avoid inflating the denominator metrics with unknown stores
+                                } else {
+                                    data.planned.add(storeId);
+                                    if (r.Status === 'MATCHED' || r.Status === 'CAPTURED, ON WRONG DAY') {
+                                        data.captured.add(storeId);
+                                        status = 'Captured';
+                                        comp = 100;
+                                    } else if (r.Status === 'NEEDS REVIEW') {
+                                        status = 'Needs Review';
+                                    }
+                                }
+
+                                data.details.push({
+                                    auditor: emp, client: clientName, storeCode: storeId, storeName: r.storeName,
+                                    plannedDate: r.PlannedDate, actualDate: r.ActualDate, status, comp,
+                                    fullRecord: r
+                                });
+                            }
+                        });
+                        
+                        // Append unexpected captures to a separate bucket
+                        res.unexpected.forEach(r => {
+                            const emp = 'Unknown (Unexpected)';
+                            const key = `${emp}_${clientName}`;
+                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), details: [], unexpectedOnly: true });
+                            const data = perfMap.get(key);
+                            data.details.push({
+                                auditor: emp, client: clientName, storeCode: r.storeCode, storeName: r.storeName,
+                                plannedDate: '-', actualDate: r.ActualDate, status: 'Unexpected', comp: 0, fullRecord: r
+                            });
+                        });
+                    };
+
+                    if (tbfsTxt) processRun(tbfsRes, 'TBFS');
+                    if (rclTxt) processRun(rclRes, 'RCL');
+                    if (liptonTxt) processRun(liptonRes, 'Lipton');
+
+                    // Warn for unclassified Lipton stores
+                    const warnDiv = document.getElementById('perf-lipton-warning');
+                    if (liptonUnclassifiedCount > 0) {
+                        warnDiv.classList.remove('hidden');
+                        warnDiv.innerHTML = `<strong>Note:</strong> ${liptonUnclassifiedCount} planned Lipton store(s) could not be reliably classified by retailer. They are flagged for review and excluded from the % metrics.`;
+                    } else {
+                        warnDiv.classList.add('hidden');
+                    }
+
+                    // Compile Summary
+                    const summary = [];
+                    let detailRowsHTML = '';
+                    
+                    const sortedKeys = Array.from(perfMap.keys()).sort();
+                    sortedKeys.forEach(k => {
+                        const d = perfMap.get(k);
+                        if(d.unexpectedOnly) return; 
+
+                        const plannedCount = d.planned.size;
+                        const capturedCount = d.captured.size;
+                        const outstanding = plannedCount - capturedCount;
+                        const completion = plannedCount > 0 ? Math.round((capturedCount / plannedCount) * 100) : 0;
+
+                        summary.push({ ...d, plannedCount, capturedCount, outstanding, completion });
+
+                        d.details.forEach(det => {
+                            let sColor = 'text-red-500';
+                            if (det.status === 'Captured') sColor = 'text-green-600';
+                            if (det.status.includes('Needs Review')) sColor = 'text-orange-500';
+
+                            detailRowsHTML += `<tr>
+                                <td class="p-2">${det.auditor} (${det.client})</td>
+                                <td class="p-2 font-mono">${det.storeCode}</td>
+                                <td class="p-2">${det.storeName}</td>
+                                <td class="p-2 font-bold ${sColor}">${det.status}</td>
+                                <td class="p-2">${det.comp}%</td>
+                            </tr>`;
+                        });
+                    });
+
+                    state.perfCompiledResults = { summary, map: perfMap, raw: { tbfs: tbfsRes, rcl: rclRes, lipton: liptonRes } };
+
+                    // Render summary grouped by Auditor
+                    const container = document.getElementById('perf-summary-container');
+                    let summaryHTML = '';
+                    
+                    const auditorGroups = {};
+                    summary.forEach(r => {
+                        if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
+                        auditorGroups[r.auditor].push(r);
+                    });
+
+                    Object.keys(auditorGroups).sort().forEach(auditor => {
+                        const rows = auditorGroups[auditor];
+                        let totPlanned = 0, totCaptured = 0, totOutstanding = 0;
+                        
+                        let rowsHtml = rows.map(r => {
+                            totPlanned += r.plannedCount;
+                            totCaptured += r.capturedCount;
+                            totOutstanding += r.outstanding;
+                            return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+                                <td class="p-3">${r.client}</td>
+                                <td class="p-3 text-right">${r.plannedCount}</td>
+                                <td class="p-3 text-right text-green-600 font-medium">${r.capturedCount}</td>
+                                <td class="p-3 text-right text-red-500 font-medium">${r.outstanding}</td>
+                                <td class="p-3 text-right font-bold text-blue-600">${r.completion}%</td>
+                            </tr>`;
+                        }).join('');
+
+                        let totComp = totPlanned > 0 ? Math.round((totCaptured / totPlanned) * 100) : 0;
+                        
+                        summaryHTML += `
+                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mb-6">
+                            <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
+                                <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">${auditor}</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
+                                    <thead class="bg-white">
+                                        <tr>
+                                            <th class="p-3 font-medium text-slate-600 w-1/4">Client</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Planned Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Captured Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Outstanding</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Completion %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        ${rowsHtml}
+                                    </tbody>
+                                    <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+                                        <tr>
+                                            <td class="p-3 font-bold text-slate-800">AUDITOR TOTAL</td>
+                                            <td class="p-3 text-right font-bold text-slate-800">${totPlanned}</td>
+                                            <td class="p-3 text-right font-bold text-green-700">${totCaptured}</td>
+                                            <td class="p-3 text-right font-bold text-red-600">${totOutstanding}</td>
+                                            <td class="p-3 text-right font-bold text-blue-800 text-base">${totComp}%</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>`;
+                    });
+
+                    container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated.</div>`;
+
+                    document.getElementById('perf-details-tbody').innerHTML = detailRowsHTML || `<tr><td colspan="5" class="p-4 text-center">No details available.</td></tr>`;
+                    document.getElementById('perf-results').classList.remove('hidden');
+                    document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
+                    ui.showToast("Calculation complete", "success");
+
+                } catch(e) {
+                    document.getElementById('perf-status-msg').innerText = "Calculation failed.";
+                    ui.showModal("Error calculating performance", e.message);
+                }
+            },
+
+            exportPerformance() {
+                if (!state.perfCompiledResults) return ui.showToast("No performance results to export.");
+                
+                const wb = XLSX.utils.book_new();
+                
+                // 1. Summary Sheet
+                const summaryAoa = [["Auditor", "Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]];
+                
+                const auditorGroups = {};
+                state.perfCompiledResults.summary.forEach(r => {
+                    if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
+                    auditorGroups[r.auditor].push(r);
+                });
+
+                Object.keys(auditorGroups).sort().forEach(auditor => {
+                    let totPlanned = 0, totCaptured = 0, totOutstanding = 0;
+                    
+                    auditorGroups[auditor].forEach(r => {
+                        totPlanned += r.plannedCount;
+                        totCaptured += r.capturedCount;
+                        totOutstanding += r.outstanding;
+                        summaryAoa.push([r.auditor, r.client, r.plannedCount, r.capturedCount, r.outstanding, `${r.completion}%`]);
+                    });
+                    
+                    let totComp = totPlanned > 0 ? Math.round((totCaptured / totPlanned) * 100) : 0;
+                    summaryAoa.push(["AUDITOR TOTAL", "", totPlanned, totCaptured, totOutstanding, `${totComp}%`]);
+                    summaryAoa.push([]); // Spacer row
+                });
+
+                const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
+                summaryWs['!cols'] = [{wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 15}];
+                XLSX.utils.book_append_sheet(wb, summaryWs, "1. Performance Summary");
+
+                const plannedDetails = [];
+                const outstandingStores = [];
+                const unexpectedCaptures = [];
+                const needsReview = [];
+                const errorsList = [];
+
+                state.perfCompiledResults.map.forEach((data, key) => {
+                    data.details.forEach(det => {
+                        const fr = det.fullRecord;
+                        const row = {
+                            "Client": det.client,
+                            "Auditor": det.auditor,
+                            "Store Code": det.storeCode,
+                            "Store Name": det.storeName,
+                            "Planned Week": fr.WeekNumber || '-',
+                            "Planned Weekday": fr.PlannedDay || '-',
+                            "Planned Date": det.plannedDate,
+                            "Capture Status": det.status,
+                            "Capture Date": det.actualDate,
+                            "Completion %": `${det.comp}%`,
+                            "Login ID (Actual)": fr.loginId || '-'
+                        };
+
+                        if (data.unexpectedOnly) {
+                            unexpectedCaptures.push(row);
+                        } else {
+                            plannedDetails.push(row);
+                            if (det.status === 'Outstanding') outstandingStores.push(row);
+                            if (det.status.includes('Needs Review')) {
+                                needsReview.push({ ...row, "Discrepancy Reason": fr.DiscrepancyReason || "Unknown Retailer (Needs Manual Review)" });
+                            }
+                        }
+                    });
+                });
+
+                const addSheet = (dataArray, sheetName) => {
+                    const ws = XLSX.utils.json_to_sheet(dataArray);
+                    if(dataArray.length > 0) ws['!cols'] = [{wch: 15}, {wch: 35}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 20}];
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                };
+
+                addSheet(plannedDetails, "2. Planned Store Details");
+                addSheet(outstandingStores, "3. Outstanding Stores");
+                addSheet(unexpectedCaptures, "4. Unexpected Captures");
+                addSheet(needsReview, "5. Needs Review");
+                
+                // 6. Processing summary generic status
+                const procSummary = [{"Status": "Success", "Message": "All provided records were processed into the above sheets successfully."}];
+                addSheet(procSummary, "6. Processing Summary");
+
+                const dateStr = new Date().toISOString().split('T')[0];
+                XLSX.writeFile(wb, `Auditor_Performance_Report_${dateStr}.xlsx`);
+            },
+            
+            // Re-adding existing methods explicitly for completeness
             saveLiptonRetailerSelection() {
                 const selected = Array.from(document.querySelectorAll('.lipton-retailer-cb:checked')).map(cb => cb.value);
                 localStorage.setItem('liptonRetailerSelection', JSON.stringify(selected));
@@ -1207,6 +1714,7 @@
                     await saveMasterData();
                     document.getElementById('paste-master').value = '';
                     ui.renderMasterTable();
+                    app.updateRetailerCount();
                 } catch (e) { ui.showModal("Error", e.message); }
             },
 
@@ -1534,6 +2042,7 @@
                 const dateStr = new Date().toISOString().split('T')[0];
                 XLSX.writeFile(wb, `Consolidated_Capturer_Missed_Stores_${dateStr}.xlsx`);
             }
+
         };
 
         window.onload = initFirebase;
