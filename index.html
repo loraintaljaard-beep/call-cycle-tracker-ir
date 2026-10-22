@@ -289,14 +289,14 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <!-- Lipton Retailer Selector (NEW) -->
+                    <!-- Lipton Retailer Selector -->
                     <div class="col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-20 overflow-visible">
                         <h3 class="font-bold text-slate-800 mb-2">Lipton Retailer Filter</h3>
                         <p class="text-xs text-slate-500 mb-3">Filter planned Lipton stores by retailer directly from Master Data. Unclassified stores are flagged for review.</p>
                         
                         <div class="relative text-left w-full mb-2">
                             <button type="button" onclick="document.getElementById('retailer-dropdown').classList.toggle('hidden')" class="inline-flex justify-between items-center w-full rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <span id="retailer-btn-text">6 Retailers Selected</span>
+                                <span id="retailer-btn-text">7 Retailers Selected</span>
                                 <svg class="-mr-1 ml-2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                             </button>
                             
@@ -382,7 +382,7 @@
                             <button onclick="app.switchPerfTab('auditor')" id="btn-perf-auditor" class="font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors">Auditor Summary</button>
                             <button onclick="app.switchPerfTab('client')" id="btn-perf-client" class="font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors">Client Summary</button>
                         </div>
-                        <button onclick="app.exportPerformance()" class="bg-green-600 hover:bg-green-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm">
+                        <button id="btn-export-perf" onclick="app.exportPerformance()" class="bg-green-600 hover:bg-green-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm disabled:opacity-50">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             Download Excel Report
                         </button>
@@ -549,6 +549,7 @@
                             <label class="flex items-center space-x-2"><input type="checkbox" id="lipton-cb-spar" value="Spar" class="lipton-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.saveLiptonRetailerSelection()"> <span class="text-sm font-medium text-slate-700">Spar</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" id="lipton-cb-superspar" value="Superspar" class="lipton-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.saveLiptonRetailerSelection()"> <span class="text-sm font-medium text-slate-700">Superspar</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" id="lipton-cb-shoprite" value="Shoprite" class="lipton-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.saveLiptonRetailerSelection()"> <span class="text-sm font-medium text-slate-700">Shoprite</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" id="lipton-cb-makro" value="Makro" class="lipton-retailer-cb rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked onchange="app.saveLiptonRetailerSelection()"> <span class="text-sm font-medium text-slate-700">Makro</span></label>
                         </div>
                     </div>
 
@@ -649,7 +650,8 @@
             historyData: [],
             dbReady: false,
             user: null,
-            perfCompiledResults: null
+            perfCompiledResults: null,
+            tempPerfActuals: null
         };
 
         let db, auth;
@@ -990,8 +992,8 @@
                         const actRec = {
                             ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
                             storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
-                            ActualDate: v.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
-                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client
+                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client,
+                            MappedEmployeeName: Array.from(v.mappedEmps).join(', ') || 'Unassigned'
                         };
                         results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
                     }
@@ -1270,7 +1272,6 @@
 
             toggleAllRetailers(isChecked) {
                 document.querySelectorAll('.perf-retailer-cb').forEach(cb => {
-                    // Only check visible ones if they are typing in search, else all
                     if (cb.closest('.retailer-item').style.display !== 'none') {
                         cb.checked = isChecked;
                     }
@@ -1300,6 +1301,7 @@
                     return ui.showModal("Error", "Master Call Cycle data is required to run Auditor Performance. Please upload it in Master Data.");
                 }
 
+                // Strictly align variables precisely so tbfsTxt isn't out of scope
                 const tbfsTxt = document.getElementById('perf-paste-tbfs').value.trim();
                 const rclTxt = document.getElementById('perf-paste-rcl').value.trim();
                 const liptonTxt = document.getElementById('perf-paste-lipton').value.trim();
@@ -1339,11 +1341,13 @@
                         throw new Error("No valid dates found in the uploaded reports. Cannot determine the reporting month.");
                     }
 
-                    // Store raw parsed reports temporarily
-                    state.tempPerfActuals = { tbfs: tbfsActuals, rcl: rclActuals, lipton: liptonActuals };
+                    // Store raw parsed reports temporarily with scope flags
+                    state.tempPerfActuals = { 
+                        tbfs: tbfsActuals, rcl: rclActuals, lipton: liptonActuals,
+                        hasTbfs: !!tbfsTxt, hasRcl: !!rclTxt, hasLipton: !!liptonTxt
+                    };
 
                     if (monthMap.size > 1) {
-                        // Ask user to isolate calculation to a single month securely
                         const select = document.getElementById('perf-month-select');
                         select.innerHTML = Array.from(monthMap.entries())
                             .sort((a,b) => b[0].localeCompare(a[0])) // Descending
@@ -1352,7 +1356,6 @@
                         document.getElementById('perf-month-container').classList.remove('hidden');
                         document.getElementById('perf-status-msg').innerText = "Multiple reporting months found. Waiting for selection.";
                     } else {
-                        // Automatically proceed if only 1 unified month is detected
                         const singleMonthKey = Array.from(monthMap.keys())[0];
                         this.executePerformance(singleMonthKey);
                     }
@@ -1371,13 +1374,11 @@
                     const [ty, tm] = targetMonthKey.split('-').map(Number);
                     const engineMonth = tm - 1; // 0-indexed for Date math
                     
-                    // Format period display visually
                     const lastDay = new Date(ty, engineMonth + 1, 0).getDate();
                     const monthNameOnly = new Date(ty, engineMonth, 1).toLocaleString('en-US', {month: 'long'});
                     const periodString = `Reporting Period: 1 ${monthNameOnly} ${ty} – ${lastDay} ${monthNameOnly} ${ty}`;
                     document.getElementById('perf-period-display').innerText = periodString;
 
-                    // Filter actual uploads strictly bounded to the selected month
                     const filterByMonth = (actuals) => {
                         return actuals.filter(r => {
                             let d = engine.parseDate(r.Date);
@@ -1392,7 +1393,6 @@
                     const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
                     let liptonUnclassifiedCount = 0;
 
-                    // Build dynamic expected pool bounded tightly to the selected month
                     const buildExpectedPool = (clientField) => {
                         let pool = [];
                         const masterFilter = state.masterData.filter(m => String(m[clientField]) === '1' || String(m[clientField]).toLowerCase() === 'true');
@@ -1415,7 +1415,6 @@
 
                             if (isValid) {
                                 let d = engine.getExpectedDate(ty, engineMonth, Number(m.WeekNumber), m.WeekDay);
-                                // Ensure strict match: Only add stores genuinely scheduled for THIS specific calendar month
                                 if (d && d.getMonth() === engineMonth) {
                                     pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _forceReview: forceReview });
                                 }
@@ -1435,11 +1434,10 @@
                     const perfMap = new Map(); // Key: EmployeeName_Client
 
                     const processRun = (res, clientName) => {
-                        // Map all planned/expected stores first
                         res.missing.concat(res.matched, res.wrongDay, res.review).forEach(r => {
                             const emp = r.ExpectedEmployee || 'Unassigned';
                             const key = `${emp}_${clientName}`;
-                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), details: [] });
+                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), unexpected: new Set(), details: [] });
                             
                             const data = perfMap.get(key);
                             const storeId = engine.normalizeCode(r.storeCode);
@@ -1451,7 +1449,6 @@
                                 if (r._forceReview) {
                                     status = 'Needs Review (Unknown Retailer)';
                                     comp = 0;
-                                    // Intentionally NOT adding to `data.planned` to avoid inflating the denominator metrics with unknown stores
                                 } else if (r.Status === 'NEEDS REVIEW' && String(r.DiscrepancyReason).includes('missing valid AS400StoreCode')) {
                                     status = 'Invalid Store Code';
                                     comp = 0;
@@ -1480,22 +1477,27 @@
                             }
                         });
                         
-                        // Append unexpected captures to a separate bucket
                         res.unexpected.forEach(r => {
-                            const emp = 'Unknown (Unexpected)';
-                            const key = `${emp}_${clientName}`;
-                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), details: [], unexpectedOnly: true });
-                            const data = perfMap.get(key);
-                            data.details.push({
-                                auditor: emp, client: clientName, storeCode: engine.normalizeCode(r.storeCode) || 'UNKNOWN', storeName: r.storeName,
-                                plannedDate: '-', actualDate: r.ActualDate, status: 'Unexpected', comp: 0, fullRecord: r
+                            const emps = r.MappedEmployeeName && r.MappedEmployeeName !== 'Unassigned' ? r.MappedEmployeeName.split(', ') : ['Unassigned (Unexpected)'];
+                            emps.forEach(emp => {
+                                const key = `${emp}_${clientName}`;
+                                if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), unexpected: new Set(), details: [] });
+                                const data = perfMap.get(key);
+                                const storeId = engine.normalizeCode(r.storeCode) || 'UNKNOWN';
+                                if (storeId !== 'UNKNOWN') data.unexpected.add(storeId);
+                                
+                                data.details.push({
+                                    auditor: emp, client: clientName, storeCode: storeId, storeName: r.storeName,
+                                    plannedDate: '-', actualDate: r.ActualDate, status: 'Unexpected', comp: 0, fullRecord: r
+                                });
                             });
                         });
                     };
 
-                    if (tbfsTxt) processRun(tbfsRes, 'TBFS');
-                    if (rclTxt) processRun(rclRes, 'RCL');
-                    if (liptonTxt) processRun(liptonRes, 'Lipton');
+                    // Safe scope check here prevents ReferenceErrors entirely
+                    if (state.tempPerfActuals.hasTbfs) processRun(tbfsRes, 'TBFS');
+                    if (state.tempPerfActuals.hasRcl) processRun(rclRes, 'RCL');
+                    if (state.tempPerfActuals.hasLipton) processRun(liptonRes, 'Lipton');
 
                     const warnDiv = document.getElementById('perf-lipton-warning');
                     if (liptonUnclassifiedCount > 0) {
@@ -1509,14 +1511,15 @@
                     const sortedKeys = Array.from(perfMap.keys()).sort();
                     sortedKeys.forEach(k => {
                         const d = perfMap.get(k);
-                        if(d.unexpectedOnly) return; 
 
                         const plannedCount = d.planned.size;
                         const capturedCount = d.captured.size;
-                        const outstanding = plannedCount - capturedCount;
+                        const unexpectedCount = d.unexpected.size;
+                        const outstanding = plannedCount > 0 ? plannedCount - capturedCount : 0;
+                        const totalActivity = capturedCount + unexpectedCount;
                         const completion = plannedCount > 0 ? Math.round((capturedCount / plannedCount) * 100) : 0;
 
-                        summary.push({ ...d, plannedCount, capturedCount, outstanding, completion });
+                        summary.push({ ...d, plannedCount, capturedCount, unexpectedCount, totalActivity, outstanding, completion });
                     });
 
                     state.perfCompiledResults = { summary, map: perfMap, raw: { tbfs: tbfsRes, rcl: rclRes, lipton: liptonRes }, periodString };
@@ -1532,16 +1535,20 @@
 
                     Object.keys(auditorGroups).sort().forEach(auditor => {
                         const rows = auditorGroups[auditor];
-                        let totPlanned = 0, totCaptured = 0, totOutstanding = 0;
+                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totTotalActivity = 0, totOutstanding = 0;
                         
                         let rowsHtml = rows.map(r => {
                             totPlanned += r.plannedCount;
                             totCaptured += r.capturedCount;
+                            totUnexpected += r.unexpectedCount;
+                            totTotalActivity += r.totalActivity;
                             totOutstanding += r.outstanding;
                             return `<tr class="border-b border-slate-100 hover:bg-slate-50">
                                 <td class="p-3">${r.client}</td>
                                 <td class="p-3 text-right">${r.plannedCount}</td>
                                 <td class="p-3 text-right text-green-600 font-medium">${r.capturedCount}</td>
+                                <td class="p-3 text-right text-orange-500 font-medium">${r.unexpectedCount}</td>
+                                <td class="p-3 text-right text-purple-600 font-medium">${r.totalActivity}</td>
                                 <td class="p-3 text-right text-red-500 font-medium">${r.outstanding}</td>
                                 <td class="p-3 text-right font-bold text-blue-600">${r.completion}%</td>
                             </tr>`;
@@ -1558,11 +1565,13 @@
                                 <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
                                     <thead class="bg-white">
                                         <tr>
-                                            <th class="p-3 font-medium text-slate-600 w-1/4">Client</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Planned Stores</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Captured Stores</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Outstanding</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Completion %</th>
+                                            <th class="p-3 font-medium text-slate-600">Client</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Planned Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Captured Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Unexpected Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Total Capture Activity</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Outstanding</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Completion %</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
@@ -1573,6 +1582,8 @@
                                             <td class="p-3 font-bold text-slate-800">AUDITOR TOTAL</td>
                                             <td class="p-3 text-right font-bold text-slate-800">${totPlanned}</td>
                                             <td class="p-3 text-right font-bold text-green-700">${totCaptured}</td>
+                                            <td class="p-3 text-right font-bold text-orange-600">${totUnexpected}</td>
+                                            <td class="p-3 text-right font-bold text-purple-700">${totTotalActivity}</td>
                                             <td class="p-3 text-right font-bold text-red-600">${totOutstanding}</td>
                                             <td class="p-3 text-right font-bold text-blue-800 text-base">${totComp}%</td>
                                         </tr>
@@ -1584,51 +1595,57 @@
 
                     container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated for the selected month.</div>`;
 
-                    // --- NEW: Client Summary Generation ---
                     const clientTotals = { 
-                        TBFS: { planned: new Set(), captured: new Set() }, 
-                        RCL: { planned: new Set(), captured: new Set() }, 
-                        Lipton: { planned: new Set(), captured: new Set() } 
+                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
+                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
+                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set() } 
                     };
                     
                     perfMap.forEach((data) => {
-                        if (data.unexpectedOnly || !clientTotals[data.client]) return;
+                        if (!clientTotals[data.client]) return;
                         data.planned.forEach(s => clientTotals[data.client].planned.add(s));
                         data.captured.forEach(s => clientTotals[data.client].captured.add(s));
+                        data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(s));
                     });
 
-                    let grandPlanned = 0, grandCaptured = 0;
+                    let grandPlanned = 0, grandCaptured = 0, grandUnexpected = 0, grandTotalActivity = 0;
                     let clientRowsHtml = '';
                     
                     ['RCL', 'Lipton', 'TBFS'].forEach(client => {
                         const p = clientTotals[client].planned.size;
                         const c = clientTotals[client].captured.size;
-                        const o = p - c;
+                        const u = clientTotals[client].unexpected.size;
+                        const o = p > 0 ? p - c : 0;
+                        const ta = c + u;
                         const comp = p > 0 ? Math.round((c / p) * 100) : 0;
                         
                         grandPlanned += p;
                         grandCaptured += c;
+                        grandUnexpected += u;
+                        grandTotalActivity += ta;
                         
                         let clientLabel = client;
                         if(client === 'Lipton' && selectedLiptonRetailers.length > 0 && selectedLiptonRetailers.length < 6) {
-                            clientLabel = `Lipton <span class="text-xs font-normal text-slate-500 ml-1">(Filtered: ${selectedLiptonRetailers.length} retailers)</span>`;
+                            clientLabel = `Lipton <span class="text-xs font-normal text-slate-500 ml-1">(Filtered)</span>`;
                         }
 
                         clientRowsHtml += `<tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="p-3 font-medium text-slate-700">${clientLabel}</td>
                             <td class="p-3 text-right">${p}</td>
                             <td class="p-3 text-right text-green-600 font-medium">${c}</td>
+                            <td class="p-3 text-right text-orange-500 font-medium">${u}</td>
+                            <td class="p-3 text-right text-purple-600 font-medium">${ta}</td>
                             <td class="p-3 text-right text-red-500 font-medium">${o}</td>
                             <td class="p-3 text-right font-bold text-blue-600">${comp}%</td>
                         </tr>`;
                     });
                     
-                    const grandOutstanding = grandPlanned - grandCaptured;
+                    const grandOutstanding = grandPlanned > 0 ? grandPlanned - grandCaptured : 0;
                     const grandComp = grandPlanned > 0 ? Math.round((grandCaptured / grandPlanned) * 100) : 0;
 
                     const clientContainer = document.getElementById('perf-client-container');
                     clientContainer.innerHTML = `
-                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden max-w-4xl mx-auto mt-4">
+                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mx-auto mt-4">
                             <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
                                 <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">Client Overall Performance</h4>
                             </div>
@@ -1636,11 +1653,13 @@
                                 <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
                                     <thead class="bg-white">
                                         <tr>
-                                            <th class="p-3 font-medium text-slate-600 w-1/4">Client</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Planned Stores</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Captured Stores</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Outstanding</th>
-                                            <th class="p-3 font-medium text-slate-600 text-right w-1/6">Completion %</th>
+                                            <th class="p-3 font-medium text-slate-600">Client</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Planned Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Captured Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Unexpected Stores</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Total Capture Activity</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Outstanding</th>
+                                            <th class="p-3 font-medium text-slate-600 text-right">Completion %</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
@@ -1651,6 +1670,8 @@
                                             <td class="p-3 font-bold text-slate-800">ALL CLIENTS TOTAL</td>
                                             <td class="p-3 text-right font-bold text-slate-800">${grandPlanned}</td>
                                             <td class="p-3 text-right font-bold text-green-700">${grandCaptured}</td>
+                                            <td class="p-3 text-right font-bold text-orange-600">${grandUnexpected}</td>
+                                            <td class="p-3 text-right font-bold text-purple-700">${grandTotalActivity}</td>
                                             <td class="p-3 text-right font-bold text-red-600">${grandOutstanding}</td>
                                             <td class="p-3 text-right font-bold text-blue-800 text-base">${grandComp}%</td>
                                         </tr>
@@ -1660,9 +1681,9 @@
                         </div>
                     `;
                     
-                    state.perfCompiledResults.clientTotals = { clientTotals, grandPlanned, grandCaptured, grandOutstanding, grandComp };
+                    state.perfCompiledResults.clientTotals = { clientTotals, grandPlanned, grandCaptured, grandUnexpected, grandTotalActivity, grandOutstanding, grandComp };
 
-                    app.switchPerfTab('auditor'); // Reset view to Auditor tab automatically
+                    app.switchPerfTab('auditor'); 
 
                     document.getElementById('perf-results').classList.remove('hidden');
                     document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
@@ -1674,119 +1695,140 @@
                 }
             },
 
-            exportPerformance() {
+            async exportPerformance() {
                 if (!state.perfCompiledResults) return ui.showToast("No performance results to export.");
                 
-                const wb = XLSX.utils.book_new();
+                const btn = document.getElementById('btn-export-perf');
+                const originalContent = btn.innerHTML;
                 
-                const summaryAoa = [
-                    [`${state.perfCompiledResults.periodString}`],
-                    [],
-                    ["Auditor", "Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]
-                ];
-                
-                const auditorGroups = {};
-                state.perfCompiledResults.summary.forEach(r => {
-                    if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
-                    auditorGroups[r.auditor].push(r);
-                });
+                // Immediately update UI to provide feedback and lock out repeat clicks
+                btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+                btn.disabled = true;
 
-                Object.keys(auditorGroups).sort().forEach(auditor => {
-                    let totPlanned = 0, totCaptured = 0, totOutstanding = 0;
+                // Yield to the main thread briefly so the browser can actually paint the "Generating..." spinner
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                try {
+                    const wb = XLSX.utils.book_new();
                     
-                    auditorGroups[auditor].forEach(r => {
-                        totPlanned += r.plannedCount;
-                        totCaptured += r.capturedCount;
-                        totOutstanding += r.outstanding;
-                        summaryAoa.push([r.auditor, r.client, r.plannedCount, r.capturedCount, r.outstanding, `${r.completion}%`]);
+                    const summaryAoa = [
+                        [`${state.perfCompiledResults.periodString}`],
+                        [],
+                        ["Auditor", "Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"]
+                    ];
+                    
+                    const auditorGroups = {};
+                    state.perfCompiledResults.summary.forEach(r => {
+                        if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
+                        auditorGroups[r.auditor].push(r);
+                    });
+
+                    Object.keys(auditorGroups).sort().forEach(auditor => {
+                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totTotalActivity = 0, totOutstanding = 0;
+                        
+                        auditorGroups[auditor].forEach(r => {
+                            totPlanned += r.plannedCount;
+                            totCaptured += r.capturedCount;
+                            totUnexpected += r.unexpectedCount;
+                            totTotalActivity += r.totalActivity;
+                            totOutstanding += r.outstanding;
+                            summaryAoa.push([r.auditor, r.client, r.plannedCount, r.capturedCount, r.unexpectedCount, r.totalActivity, r.outstanding, `${r.completion}%`]);
+                        });
+                        
+                        let totComp = totPlanned > 0 ? Math.round((totCaptured / totPlanned) * 100) : 0;
+                        summaryAoa.push(["AUDITOR TOTAL", "", totPlanned, totCaptured, totUnexpected, totTotalActivity, totOutstanding, `${totComp}%`]);
+                        summaryAoa.push([]); 
+                    });
+
+                    const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
+                    summaryWs['!cols'] = [{wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 22}, {wch: 18}, {wch: 15}];
+                    XLSX.utils.book_append_sheet(wb, summaryWs, "1. Auditor Summary");
+                    
+                    const clientAoa = [
+                        [`${state.perfCompiledResults.periodString}`],
+                        [],
+                        ["Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"]
+                    ];
+                    
+                    ['RCL', 'Lipton', 'TBFS'].forEach(client => {
+                        const cT = state.perfCompiledResults.clientTotals.clientTotals[client];
+                        const p = cT.planned.size;
+                        const c = cT.captured.size;
+                        const u = cT.unexpected.size;
+                        const o = p > 0 ? p - c : 0;
+                        const ta = c + u;
+                        const comp = p > 0 ? Math.round((c / p) * 100) : 0;
+                        clientAoa.push([client, p, c, u, ta, o, `${comp}%`]);
                     });
                     
-                    let totComp = totPlanned > 0 ? Math.round((totCaptured / totPlanned) * 100) : 0;
-                    summaryAoa.push(["AUDITOR TOTAL", "", totPlanned, totCaptured, totOutstanding, `${totComp}%`]);
-                    summaryAoa.push([]); // Spacer row
-                });
+                    const gT = state.perfCompiledResults.clientTotals;
+                    clientAoa.push(["ALL CLIENTS TOTAL", gT.grandPlanned, gT.grandCaptured, gT.grandUnexpected, gT.grandTotalActivity, gT.grandOutstanding, `${gT.grandComp}%`]);
+                    
+                    const clientWs = XLSX.utils.aoa_to_sheet(clientAoa);
+                    clientWs['!cols'] = [{wch: 25}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 22}, {wch: 18}, {wch: 15}];
+                    XLSX.utils.book_append_sheet(wb, clientWs, "2. Client Summary");
 
-                const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
-                summaryWs['!cols'] = [{wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 15}];
-                XLSX.utils.book_append_sheet(wb, summaryWs, "1. Auditor Summary");
-                
-                // --- Client Summary Export ---
-                const clientAoa = [
-                    [`${state.perfCompiledResults.periodString}`],
-                    [],
-                    ["Client", "Planned Stores", "Captured Stores", "Outstanding Stores", "Completion %"]
-                ];
-                
-                ['RCL', 'Lipton', 'TBFS'].forEach(client => {
-                    const cT = state.perfCompiledResults.clientTotals.clientTotals[client];
-                    const p = cT.planned.size;
-                    const c = cT.captured.size;
-                    const o = p - c;
-                    const comp = p > 0 ? Math.round((c / p) * 100) : 0;
-                    clientAoa.push([client, p, c, o, `${comp}%`]);
-                });
-                
-                const gT = state.perfCompiledResults.clientTotals;
-                clientAoa.push(["ALL CLIENTS TOTAL", gT.grandPlanned, gT.grandCaptured, gT.grandOutstanding, `${gT.grandComp}%`]);
-                
-                const clientWs = XLSX.utils.aoa_to_sheet(clientAoa);
-                clientWs['!cols'] = [{wch: 25}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 15}];
-                XLSX.utils.book_append_sheet(wb, clientWs, "2. Client Summary");
+                    const plannedDetails = [];
+                    const outstandingStores = [];
+                    const unexpectedCaptures = [];
+                    const needsReview = [];
+                    const errorsList = [];
 
-                const plannedDetails = [];
-                const outstandingStores = [];
-                const unexpectedCaptures = [];
-                const needsReview = [];
-                const errorsList = [];
+                    state.perfCompiledResults.map.forEach((data, key) => {
+                        data.details.forEach(det => {
+                            const fr = det.fullRecord;
+                            const row = {
+                                "Client": det.client,
+                                "Auditor": det.auditor,
+                                "Store Code": det.storeCode,
+                                "Store Name": det.storeName,
+                                "Planned Week": fr.WeekNumber || '-',
+                                "Planned Weekday": fr.PlannedDay || '-',
+                                "Planned Date": det.plannedDate,
+                                "Capture Status": det.status,
+                                "Capture Date": det.actualDate,
+                                "Completion %": `${det.comp}%`,
+                                "Login ID (Actual)": fr.loginId || '-'
+                            };
 
-                state.perfCompiledResults.map.forEach((data, key) => {
-                    data.details.forEach(det => {
-                        const fr = det.fullRecord;
-                        const row = {
-                            "Client": det.client,
-                            "Auditor": det.auditor,
-                            "Store Code": det.storeCode,
-                            "Store Name": det.storeName,
-                            "Planned Week": fr.WeekNumber || '-',
-                            "Planned Weekday": fr.PlannedDay || '-',
-                            "Planned Date": det.plannedDate,
-                            "Capture Status": det.status,
-                            "Capture Date": det.actualDate,
-                            "Completion %": `${det.comp}%`,
-                            "Login ID (Actual)": fr.loginId || '-'
-                        };
-
-                        if (data.unexpectedOnly) {
-                            unexpectedCaptures.push(row);
-                        } else {
-                            plannedDetails.push(row);
-                            if (det.status === 'Outstanding') outstandingStores.push(row);
-                            if (det.status.includes('Needs Review')) {
-                                needsReview.push({ ...row, "Discrepancy Reason": fr.DiscrepancyReason || "Unknown Retailer (Needs Manual Review)" });
+                            if (det.status === 'Unexpected') {
+                                unexpectedCaptures.push(row);
+                            } else {
+                                plannedDetails.push(row);
+                                if (det.status === 'Outstanding') outstandingStores.push(row);
+                                if (det.status.includes('Needs Review') || det.status === 'Invalid Store Code') {
+                                    needsReview.push({ ...row, "Discrepancy Reason": fr.DiscrepancyReason || "Unknown Retailer / Validation Issue" });
+                                }
                             }
-                        }
+                        });
                     });
-                });
 
-                const addSheet = (dataArray, sheetName) => {
-                    const ws = XLSX.utils.json_to_sheet(dataArray);
-                    if(dataArray.length > 0) ws['!cols'] = [{wch: 15}, {wch: 35}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 20}];
-                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                };
+                    const addSheet = (dataArray, sheetName) => {
+                        const ws = XLSX.utils.json_to_sheet(dataArray);
+                        if(dataArray.length > 0) ws['!cols'] = [{wch: 15}, {wch: 35}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 20}];
+                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                    };
 
-                addSheet(plannedDetails, "3. Planned Store Details");
-                addSheet(outstandingStores, "4. Outstanding Stores");
-                addSheet(unexpectedCaptures, "5. Unexpected Captures");
-                addSheet(needsReview, "6. Needs Review");
-                
-                const procSummary = [{"Status": "Success", "Message": "All provided records were processed into the above sheets successfully."}];
-                addSheet(procSummary, "7. Processing Summary");
+                    addSheet(plannedDetails, "3. Planned Store Details");
+                    addSheet(outstandingStores, "4. Outstanding Stores");
+                    addSheet(unexpectedCaptures, "5. Unexpected Captures");
+                    addSheet(needsReview, "6. Needs Review");
+                    
+                    const procSummary = [{"Status": "Success", "Message": "All provided records were processed into the above sheets successfully."}];
+                    addSheet(procSummary, "7. Processing Summary");
 
-                const dateStr = new Date().toISOString().split('T')[0];
-                XLSX.writeFile(wb, `Auditor_Performance_Report_${dateStr}.xlsx`);
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    XLSX.writeFile(wb, `Auditor_Performance_Report_${dateStr}.xlsx`);
+                } catch (err) {
+                    console.error("Export Error:", err);
+                    ui.showModal("Export Failed", "The file was too large or an unexpected error occurred. " + err.message);
+                } finally {
+                    // Critical: Guarantee button restoration regardless of success or memory failure
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }
             },
             
-            // Re-adding existing methods explicitly for completeness
             saveLiptonRetailerSelection() {
                 const selected = Array.from(document.querySelectorAll('.lipton-retailer-cb:checked')).map(cb => cb.value);
                 localStorage.setItem('liptonRetailerSelection', JSON.stringify(selected));
@@ -2217,7 +2259,6 @@
                 const dateStr = new Date().toISOString().split('T')[0];
                 XLSX.writeFile(wb, `Consolidated_Capturer_Missed_Stores_${dateStr}.xlsx`);
             }
-
         };
 
         window.onload = initFirebase;
