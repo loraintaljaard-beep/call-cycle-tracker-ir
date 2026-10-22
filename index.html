@@ -296,7 +296,7 @@
                         
                         <div class="relative text-left w-full mb-2">
                             <button type="button" onclick="document.getElementById('retailer-dropdown').classList.toggle('hidden')" class="inline-flex justify-between items-center w-full rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <span id="retailer-btn-text">7 Retailers Selected</span>
+                                <span id="retailer-btn-text">6 Retailers Selected</span>
                                 <svg class="-mr-1 ml-2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                             </button>
                             
@@ -1301,7 +1301,7 @@
                     return ui.showModal("Error", "Master Call Cycle data is required to run Auditor Performance. Please upload it in Master Data.");
                 }
 
-                // Strictly align variables precisely so tbfsTxt isn't out of scope
+                // Explicitly declare variables mapped from DOM elements
                 const tbfsTxt = document.getElementById('perf-paste-tbfs').value.trim();
                 const rclTxt = document.getElementById('perf-paste-rcl').value.trim();
                 const liptonTxt = document.getElementById('perf-paste-lipton').value.trim();
@@ -1596,25 +1596,31 @@
                     container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated for the selected month.</div>`;
 
                     const clientTotals = { 
-                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
-                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
-                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set() } 
+                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
+                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
+                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() } 
                     };
                     
                     perfMap.forEach((data) => {
                         if (!clientTotals[data.client]) return;
-                        data.planned.forEach(s => clientTotals[data.client].planned.add(s));
-                        data.captured.forEach(s => clientTotals[data.client].captured.add(s));
-                        data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(s));
+                        data.planned.forEach(s => {
+                            clientTotals[data.client].planned.add(`${data.auditor}_${s}`);
+                            clientTotals[data.client].uniquePhysical.add(s);
+                        });
+                        data.captured.forEach(s => clientTotals[data.client].captured.add(`${data.auditor}_${s}`));
+                        data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(`${data.auditor}_${s}`));
                     });
 
                     let grandPlanned = 0, grandCaptured = 0, grandUnexpected = 0, grandTotalActivity = 0;
+                    let uniquePhysicalTotal = 0;
                     let clientRowsHtml = '';
                     
                     ['RCL', 'Lipton', 'TBFS'].forEach(client => {
                         const p = clientTotals[client].planned.size;
                         const c = clientTotals[client].captured.size;
                         const u = clientTotals[client].unexpected.size;
+                        const physical = clientTotals[client].uniquePhysical.size;
+                        uniquePhysicalTotal += physical;
                         const o = p > 0 ? p - c : 0;
                         const ta = c + u;
                         const comp = p > 0 ? Math.round((c / p) * 100) : 0;
@@ -1643,8 +1649,19 @@
                     const grandOutstanding = grandPlanned > 0 ? grandPlanned - grandCaptured : 0;
                     const grandComp = grandPlanned > 0 ? Math.round((grandCaptured / grandPlanned) * 100) : 0;
 
+                    const discrepancy = grandPlanned - uniquePhysicalTotal;
+                    let validationHtml = '';
+                    if (discrepancy > 0) {
+                        validationHtml = `
+                        <div class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-sm text-blue-800 shadow-sm">
+                            <strong>Reconciliation Validation:</strong> The Client Totals table reflects <strong>${grandPlanned}</strong> scheduled auditor visits across <strong>${uniquePhysicalTotal}</strong> unique physical stores. 
+                            The difference of <strong>${discrepancy}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors. 
+                            The client totals aggregate unique Auditor-Store assignments to ensure they reconcile perfectly with the Auditor Performance summaries.
+                        </div>`;
+                    }
+
                     const clientContainer = document.getElementById('perf-client-container');
-                    clientContainer.innerHTML = `
+                    clientContainer.innerHTML = validationHtml + `
                         <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mx-auto mt-4">
                             <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
                                 <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">Client Overall Performance</h4>
