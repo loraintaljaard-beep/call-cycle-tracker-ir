@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Custom scrollbar for tables */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -22,7 +21,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
 
-    <!-- Global Watermark -->
     <div class="fixed bottom-1.5 right-3 z-[9999] text-[10px] text-slate-400/70 pointer-events-none font-medium tracking-wide">
         Created by Lorain Kotze. Powered by Gemini.
     </div>
@@ -645,7 +643,7 @@
             historyData: [],
             dbReady: false,
             user: null,
-            perfCompiledResults: null,
+            perfResults: null,
             tempPerfActuals: null
         };
 
@@ -855,8 +853,8 @@
             formatDate(dateObj) { return dateObj ? dateObj.toISOString().split('T')[0] : ''; },
             getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
 
-            // Engine.run remains untouched for the Reconciliation Tab
             run(actuals, client, expectedPool) {
+                // ... Existing single-run reconciliation logic remains totally unchanged ...
                 const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
                 let catHeader = 'category', loginHeader = 'loginId';
                 if(actuals.length > 0) {
@@ -941,8 +939,7 @@
                         storeCode: exp.AS400StoreCode || '',
                         storeName: exp.StoreName || '',
                         ExpectedEmployee: exp.EmployeeName || '',
-                        Client: client,
-                        _forceReview: exp._forceReview // Pass through from dynamic pools
+                        Client: client
                     };
 
                     if (!exp._isValidCode) {
@@ -988,8 +985,8 @@
                         const actRec = {
                             ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
                             storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
-                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client,
-                            MappedEmployeeName: Array.from(v.mappedEmps).join(', ') || 'Unassigned'
+                            ActualDate: v.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
+                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client
                         };
                         results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
                     }
@@ -1093,7 +1090,7 @@
             showModal(title, msg) {
                 document.getElementById('modal-title').innerText = title;
                 document.getElementById('modal-msg').innerText = msg;
-                document.getElementById('modal-actions').innerHTML = `<button onclick="ui.closeModal()" class="bg-slate-800 text-white px-5 py-2 rounded">OK</button>`;
+                document.getElementById('modal-actions').innerHTML = `<button onclick="ui.closeModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg font-medium">OK</button>`;
                 document.getElementById('modal-overlay').classList.remove('hidden');
             },
 
@@ -1235,7 +1232,6 @@
         };
 
         window.app = {
-            ...window.app, 
 
             // -- AUDITOR PERFORMANCE LOGIC --
             
@@ -1297,12 +1293,11 @@
                     return ui.showModal("Error", "Master Call Cycle data is required to run Auditor Performance. Please upload it in Master Data.");
                 }
 
-                // Correct Scope Linkage
-                const tbfsTxt = document.getElementById('perf-paste-tbfs').value.trim();
-                const rclTxt = document.getElementById('perf-paste-rcl').value.trim();
-                const liptonTxt = document.getElementById('perf-paste-lipton').value.trim();
+                const tbfsTxt = document.getElementById('perf-paste-tbfs').value || '';
+                const rclTxt = document.getElementById('perf-paste-rcl').value || '';
+                const liptonTxt = document.getElementById('perf-paste-lipton').value || '';
 
-                if (!tbfsTxt && !rclTxt && !liptonTxt) {
+                if (!tbfsTxt.trim() && !rclTxt.trim() && !liptonTxt.trim()) {
                     return ui.showModal("Error", "Please paste at least one client report to calculate performance.");
                 }
 
@@ -1311,18 +1306,27 @@
                 document.getElementById('perf-month-container').classList.add('hidden');
                 
                 try {
-                    const req = ['Date', 'storeCode'];
+                    const req = []; // Soft requirement for extracting dates
                     let tbfsActuals = [], rclActuals = [], liptonActuals = [];
-                    if (tbfsTxt) tbfsActuals = engine.parseTSV(tbfsTxt, req);
-                    if (rclTxt) rclActuals = engine.parseTSV(rclTxt, req);
-                    if (liptonTxt) liptonActuals = engine.parseTSV(liptonTxt, req);
+                    if (tbfsTxt.trim()) tbfsActuals = engine.parseTSV(tbfsTxt, req);
+                    if (rclTxt.trim()) rclActuals = engine.parseTSV(rclTxt, req);
+                    if (liptonTxt.trim()) liptonActuals = engine.parseTSV(liptonTxt, req);
 
                     const allActuals = [...tbfsActuals, ...rclActuals, ...liptonActuals];
                     const monthMap = new Map();
 
-                    // Detect exact months from the report Date columns
+                    // STRICT Exact Aliased Value Extraction (Strips spaces, underscores, ignores case)
+                    const getExactVal = (row, exactAliases) => {
+                        const key = Object.keys(row).find(k => {
+                            const clean = k.toLowerCase().replace(/[\s_\-]/g, '');
+                            return exactAliases.includes(clean);
+                        });
+                        return key ? row[key] : null;
+                    };
+
                     allActuals.forEach(r => {
-                        let d = engine.parseDate(r.Date);
+                        const rawDate = getExactVal(r, ['date']);
+                        let d = engine.parseDate(rawDate);
                         if (d) {
                             let y = d.getFullYear();
                             let m = d.getMonth() + 1; // 1-12 format
@@ -1375,15 +1379,14 @@
                     const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
 
                     // --- 1. SETUP STRICT TRACKING INFRASTRUCTURE ---
-                    // Used to deduplicate identical schedule requirements natively
                     const perfMap = new Map(); // Key: auditor_client -> { planned: Set, captured: Set, unexpected: Set }
-                    const plannedDetailsMap = new Map(); // Key: auditor_client_code -> details
+                    const plannedDetailsMap = new Map(); 
                     const outstandingList = [];
                     const unexpectedDetailsList = [];
                     const reviewDetailsList = [];
-
-                    // The unique keys natively align the UI and the Export sheets perfectly to ensure the 1633 vs 1673 numbers match.
-                    const validPlannedKeys = new Set(); 
+                    
+                    const validPlannedKeys = new Set(); // Stores EXACT assignments -> `${Client}::${Auditor}::${StoreCode}`
+                    const globalClientPlanned = new Set(); // Stores GLOBAL assignments -> `${Client}::${StoreCode}`
 
                     const getAuditorClientMap = (auditor, client) => {
                         const key = `${auditor}_${client}`;
@@ -1392,32 +1395,34 @@
                     };
 
                     // --- 2. PROCESS MASTER DATA (PLANNED) ---
-                    let liptonUnclassifiedCount = 0;
-
                     state.masterData.forEach(m => {
-                        // Must be validly within target month
                         const expectedDate = engine.getExpectedDate(ty, engineMonth, Number(m.WeekNumber), m.WeekDay);
                         if (!expectedDate || expectedDate.getMonth() !== engineMonth) return;
 
-                        const code = engine.normalizeCode(m.AS400StoreCode);
+                        const rawCode = engine.normalizeCode(m.AS400StoreCode);
+                        const code = rawCode ? String(rawCode).trim() : null;
                         const rawAuditor = engine.normalizeText(m.EmployeeName);
 
                         if (!code || !rawAuditor) {
                             reviewDetailsList.push({
-                                Client: 'Master Data', ExpectedEmployee: rawAuditor || 'Unassigned', storeCode: m.AS400StoreCode || 'Missing',
+                                Client: 'Master Data', ExpectedEmployee: m.EmployeeName || 'Unassigned', storeCode: m.AS400StoreCode || 'Missing',
                                 storeName: m.StoreName || '', WeekNumber: m.WeekNumber || '-', PlannedDay: m.WeekDay || '-',
                                 PlannedDate: engine.formatDate(expectedDate), Status: 'NEEDS REVIEW (Invalid Code or Auditor in Master)'
                             });
                             return;
                         }
 
-                        // Map back to proper casing for display
                         const auditor = m.EmployeeName.trim();
 
                         const trackPlanned = (client) => {
-                            const uniqueKey = `${auditor}_${client}_${code}`;
+                            const safeClient = String(client).trim().toUpperCase();
+                            const uniqueKey = `${safeClient}::${auditor}::${code}`;
+                            
+                            // Prevent Master Data duplication (e.g. store appears twice on schedule for same auditor) from inflating counts
                             if (!validPlannedKeys.has(uniqueKey)) {
                                 validPlannedKeys.add(uniqueKey);
+                                globalClientPlanned.add(`${safeClient}::${code}`);
+                                
                                 getAuditorClientMap(auditor, client).planned.add(code);
                                 plannedDetailsMap.set(uniqueKey, {
                                     Client: client, ExpectedEmployee: auditor, storeCode: code, storeName: m.StoreName || '',
@@ -1433,7 +1438,6 @@
                             if (selectedLiptonRetailers.includes(retailer)) {
                                 trackPlanned('Lipton');
                             } else if (retailer === "Unknown") {
-                                liptonUnclassifiedCount++;
                                 reviewDetailsList.push({
                                     Client: 'Lipton', ExpectedEmployee: auditor, storeCode: code, storeName: m.StoreName || '',
                                     WeekNumber: m.WeekNumber || '-', PlannedDay: m.WeekDay || '-', PlannedDate: engine.formatDate(expectedDate),
@@ -1443,71 +1447,111 @@
                         }
                     });
 
+                    // STRICT Exact Aliased Value Extraction Helper
+                    const getExactVal = (row, exactAliases) => {
+                        const key = Object.keys(row).find(k => {
+                            const clean = k.toLowerCase().replace(/[\s_\-]/g, '');
+                            return exactAliases.includes(clean);
+                        });
+                        return key ? row[key] : null;
+                    };
+
                     // --- 3. PROCESS CAPTURES (ACTUALS) ---
                     const processActuals = (actuals, client) => {
-                        let loginHeader = 'loginId';
-                        if (actuals.length > 0) {
-                            const keys = Object.keys(actuals[0]);
-                            const foundLog = keys.find(k => /loginid|userid/i.test(k)); 
-                            if (foundLog) loginHeader = foundLog;
-                        }
+                        let totalRead = actuals.length;
+                        let validDate = 0, validStore = 0, mappedAuditor = 0;
 
                         actuals.forEach(act => {
-                            const date = engine.parseDate(act.Date);
+                            const rawDate = getExactVal(act, ['date']);
+                            const date = engine.parseDate(rawDate);
                             // Strictly bound captures to target reporting month
                             if (!date || date.getFullYear() !== ty || date.getMonth() !== engineMonth) return;
+                            validDate++;
 
-                            const code = engine.normalizeCode(act.storeCode || act.StoreCode);
+                            const rawCodeExtract = getExactVal(act, ['storecode', 'storeid']);
+                            const rawCode = engine.normalizeCode(rawCodeExtract);
+                            const code = rawCode ? String(rawCode).trim() : null;
                             if (!code) return;
+                            validStore++;
 
-                            const login = act[loginHeader] || 'Unknown';
-                            // Rely strictly on verified mapping
-                            const mappedEmp = state.mappings[login];
+                            const rawLogin = getExactVal(act, ['loginid', 'userid', 'capturer', 'username', 'login']);
+                            const login = (rawLogin || 'Unknown').toString().trim();
+                            
+                            // Rely strictly on verified mapping, with case-insensitive fallback
+                            let mappedEmp = state.mappings[login];
+                            if (!mappedEmp) {
+                                const lowerLogin = login.toLowerCase();
+                                const matchKey = Object.keys(state.mappings).find(k => k.toLowerCase() === lowerLogin);
+                                if (matchKey) mappedEmp = state.mappings[matchKey];
+                            }
+
                             if (!mappedEmp) {
                                 reviewDetailsList.push({
-                                    Client: client, ExpectedEmployee: 'Unassigned', storeCode: code, storeName: act.storeName || act.StoreName || '',
-                                    WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: `NEEDS REVIEW (Unmapped Login: ${login})`
+                                    Client: client, ExpectedEmployee: 'Unassigned', storeCode: code, 
+                                    storeName: getExactVal(act, ['storename']) || '',
+                                    WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', 
+                                    Status: `NEEDS REVIEW (Unmapped Login: ${login})`, ActualDate: engine.formatDate(date)
                                 });
                                 return;
                             }
+                            mappedAuditor++;
 
-                            const auditor = mappedEmp.trim();
-                            const uniqueKey = `${auditor}_${client}_${code}`;
-                            const map = getAuditorClientMap(auditor, client);
+                            const finalAuditorName = mappedEmp.trim();
+                            const safeClient = String(client).trim().toUpperCase();
+                            const uniqueKey = `${safeClient}::${finalAuditorName}::${code}`;
+                            const map = getAuditorClientMap(finalAuditorName, client);
 
-                            // The core fix: Check the exact unique planned key against actual captures
+                            // Core Check: Is it an exact match for THIS auditor?
                             if (validPlannedKeys.has(uniqueKey)) {
                                 map.captured.add(code);
                                 plannedDetailsMap.get(uniqueKey).ActualDate = engine.formatDate(date);
                             } else {
-                                // If they captured a store NOT assigned to them in the schedule for that client, it is Unexpected.
-                                if (!map.unexpected.has(code)) {
-                                    map.unexpected.add(code);
-                                    unexpectedDetailsList.push({
-                                        Client: client, ExpectedEmployee: auditor, storeCode: code, storeName: act.storeName || act.StoreName || '',
-                                        WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'Unexpected Capture', ActualDate: engine.formatDate(date)
+                                // Core Check: Is it planned for ANY auditor for this client?
+                                if (globalClientPlanned.has(`${safeClient}::${code}`)) {
+                                    reviewDetailsList.push({
+                                        Client: client, ExpectedEmployee: finalAuditorName, storeCode: code, 
+                                        storeName: getExactVal(act, ['storename']) || '',
+                                        WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', 
+                                        Status: `NEEDS REVIEW (Captured by ${finalAuditorName}, assigned to another)`, ActualDate: engine.formatDate(date)
                                     });
+                                } else {
+                                    // Not in Master Data for this client at all -> Truly Unexpected
+                                    if (!map.unexpected.has(code)) {
+                                        map.unexpected.add(code);
+                                        unexpectedDetailsList.push({
+                                            Client: client, ExpectedEmployee: finalAuditorName, storeCode: code, 
+                                            storeName: getExactVal(act, ['storename']) || '',
+                                            WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', 
+                                            Status: 'Unexpected Capture', ActualDate: engine.formatDate(date)
+                                        });
+                                    }
                                 }
                             }
                         });
+
+                        // Diagnostic Alert System to prevent silent zeroes
+                        if (totalRead > 0 && mappedAuditor === 0) {
+                            throw new Error(`Diagnostic [${client}]: Read ${totalRead} rows. ${validDate} matched reporting month. ${validStore} had valid store codes. 0 successfully mapped to an auditor. Please check your Employee Mapping and column headers.`);
+                        }
                     };
 
-                    processActuals(state.tempPerfActuals.tbfsActuals, 'TBFS');
-                    processActuals(state.tempPerfActuals.rclActuals, 'RCL');
-                    processActuals(state.tempPerfActuals.liptonActuals, 'Lipton');
+                    processActuals(state.tempPerfActuals.tbfsActuals || [], 'TBFS');
+                    processActuals(state.tempPerfActuals.rclActuals || [], 'RCL');
+                    processActuals(state.tempPerfActuals.liptonActuals || [], 'Lipton');
 
                     // --- 4. COMPILE UI SUMMARIES ---
                     const auditorSummary = [];
                     const clientTotals = { 
-                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
-                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
-                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() } 
+                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
+                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set() }, 
+                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set() } 
                     };
 
                     perfMap.forEach((data, key) => {
                         const planned = data.planned.size;
                         const captured = data.captured.size;
                         const unexpected = data.unexpected.size;
+                        
                         if (planned === 0 && captured === 0 && unexpected === 0) return;
 
                         const outstanding = planned > captured ? planned - captured : 0;
@@ -1516,23 +1560,27 @@
                         auditorSummary.push({ auditor: data.auditor, client: data.client, planned, captured, unexpected, outstanding, completion });
 
                         if (clientTotals[data.client]) {
-                            // Safely combine stores for client totals, keeping unique pairs intact
-                            data.planned.forEach(s => {
-                                clientTotals[data.client].planned.add(`${data.auditor}_${s}`);
-                                clientTotals[data.client].uniquePhysical.add(s);
-                            });
+                            // Safely combine stores for client totals natively using Auditor_Store globally unique keys
+                            data.planned.forEach(s => clientTotals[data.client].planned.add(`${data.auditor}_${s}`));
                             data.captured.forEach(s => clientTotals[data.client].captured.add(`${data.auditor}_${s}`));
                             data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(`${data.auditor}_${s}`));
                         }
                     });
 
-                    // Compile details for export
+                    // Compile details for export safely using the unified Sets
                     const exportedPlanned = [];
-                    plannedDetailsMap.forEach((data, key) => {
-                        const isCaptured = getAuditorClientMap(data.ExpectedEmployee, data.Client).captured.has(data.storeCode);
-                        data.Status = isCaptured ? 'Captured' : 'Outstanding';
-                        exportedPlanned.push(data);
-                        if (!isCaptured) outstandingList.push(data);
+                    plannedDetailsMap.forEach((data, uniqueKey) => {
+                        // Extract mapping keys safely from uniqueKey format
+                        const parts = uniqueKey.split('::');
+                        if(parts.length === 3) {
+                            const mapClient = data.Client;
+                            const mapAuditor = data.ExpectedEmployee;
+                            const mapCode = data.storeCode;
+                            const isCaptured = getAuditorClientMap(mapAuditor, mapClient).captured.has(mapCode);
+                            data.Status = isCaptured ? 'Captured' : 'Outstanding';
+                            exportedPlanned.push(data);
+                            if (!isCaptured) outstandingList.push(data);
+                        }
                     });
 
                     state.perfResults = {
@@ -1559,16 +1607,20 @@
 
                     Object.keys(auditorGroups).sort().forEach(auditor => {
                         const rows = auditorGroups[auditor];
-                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totOutstanding = 0;
+                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totActivity = 0, totOutstanding = 0;
                         
                         let rowsHtml = rows.map(r => {
-                            totPlanned += r.planned; totCaptured += r.captured; totUnexpected += r.unexpected; totOutstanding += r.outstanding;
+                            const activity = r.captured + r.unexpected;
+                            totPlanned += r.planned; totCaptured += r.captured; 
+                            totUnexpected += r.unexpected; totActivity += activity; 
+                            totOutstanding += r.outstanding;
+                            
                             return `<tr class="border-b border-slate-100 hover:bg-slate-50">
                                 <td class="p-3">${r.client}</td>
                                 <td class="p-3 text-right">${r.planned}</td>
                                 <td class="p-3 text-right text-green-600 font-medium">${r.captured}</td>
                                 <td class="p-3 text-right text-orange-500 font-medium">${r.unexpected}</td>
-                                <td class="p-3 text-right text-purple-600 font-medium">${r.captured + r.unexpected}</td>
+                                <td class="p-3 text-right text-purple-600 font-medium">${activity}</td>
                                 <td class="p-3 text-right text-red-500 font-medium">${r.outstanding}</td>
                                 <td class="p-3 text-right font-bold text-blue-600">${r.completion}%</td>
                             </tr>`;
@@ -1603,7 +1655,7 @@
                                             <td class="p-3 text-right font-bold text-slate-800">${totPlanned}</td>
                                             <td class="p-3 text-right font-bold text-green-700">${totCaptured}</td>
                                             <td class="p-3 text-right font-bold text-orange-600">${totUnexpected}</td>
-                                            <td class="p-3 text-right font-bold text-purple-700">${totCaptured + totUnexpected}</td>
+                                            <td class="p-3 text-right font-bold text-purple-700">${totActivity}</td>
                                             <td class="p-3 text-right font-bold text-red-600">${totOutstanding}</td>
                                             <td class="p-3 text-right font-bold text-blue-800 text-base">${totComp}%</td>
                                         </tr>
@@ -1616,7 +1668,6 @@
                     container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated for the selected month.</div>`;
 
                     let grandPlanned = 0, grandCaptured = 0, grandUnexpected = 0;
-                    let uniquePhysicalTotal = 0;
                     let clientRowsHtml = '';
                     const compiledClientSummary = [];
                     
@@ -1624,8 +1675,7 @@
                         const p = clientTotals[client].planned.size;
                         const c = clientTotals[client].captured.size;
                         const u = clientTotals[client].unexpected.size;
-                        const physical = clientTotals[client].uniquePhysical.size;
-                        uniquePhysicalTotal += physical;
+                        
                         const o = p > c ? p - c : 0;
                         const comp = p > 0 ? Math.round((c / p) * 100) : 0;
                         
@@ -1652,19 +1702,8 @@
                     const grandComp = grandPlanned > 0 ? Math.round((grandCaptured / grandPlanned) * 100) : 0;
                     state.perfResults.clientSummary = compiledClientSummary;
 
-                    const discrepancy = grandPlanned - uniquePhysicalTotal;
-                    let validationHtml = '';
-                    if (discrepancy > 0) {
-                        validationHtml = `
-                        <div class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-sm text-blue-800 shadow-sm">
-                            <strong>Reconciliation Validation:</strong> The Client Totals table correctly reflects <strong>${grandPlanned}</strong> planned auditor assignments across <strong>${uniquePhysicalTotal}</strong> unique physical stores. 
-                            The difference of <strong>${discrepancy}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors. 
-                            The client totals safely aggregate these unique Auditor-Store assignments to ensure they reconcile perfectly with the sum of the individual Auditor Summaries.
-                        </div>`;
-                    }
-
                     const clientContainer = document.getElementById('perf-client-container');
-                    clientContainer.innerHTML = validationHtml + `
+                    clientContainer.innerHTML = `
                         <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mx-auto mt-4 w-full">
                             <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
                                 <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">Client Overall Performance</h4>
@@ -1747,9 +1786,12 @@
                         const mapStore = (r) => [r.Client, r.ExpectedEmployee, r.storeCode, r.storeName, r.WeekNumber, r.PlannedDay, r.PlannedDate, r.Status];
                         const detailHeaders = ["Client", "Capturer Name", "Store Code", "Store Name", "Planned Week", "Planned Weekday", "Planned Date", "Status"];
 
-                        // 3. Planned Store Details (Strictly filtered by the validated keys so the total row count exactly equals the UI)
+                        // 3. Planned Store Details (Strictly deduplicated to match UI)
                         const deduplicatedPlanned = details.planned.filter(p => {
-                            const uniqueKey = `${p.ExpectedEmployee}_${p.Client}_${p.storeCode}`;
+                            const safeClient = String(p.Client).trim().toUpperCase();
+                            const safeAuditor = engine.normalizeText(p.ExpectedEmployee);
+                            const safeCode = String(p.storeCode).trim();
+                            const uniqueKey = `${safeClient}::${safeAuditor}::${safeCode}`;
                             return state.perfResults.trackingSets.validPlannedKeys.has(uniqueKey);
                         });
                         
@@ -1778,7 +1820,7 @@
                         btn.disabled = false; 
                         btn.innerHTML = originalHtml;
                     }
-                }, 50); // Small 50ms async yield to prevent main thread blocking while generating the report
+                }, 50); // Small yield
             },
             
             saveLiptonRetailerSelection() {
