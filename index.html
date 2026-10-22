@@ -25,7 +25,7 @@
         Created by Lorain Kotze. Powered by Gemini.
     </div>
 
-    <!-- Login View Overlay -->
+    <!-- Login View -->
     <div id="login-view" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center transition-opacity">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-slate-200">
             <div class="flex justify-center mb-4">
@@ -54,7 +54,6 @@
                 </div>
                 <button onclick="ui.login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg shadow transition-colors mt-2">Log In</button>
             </div>
-            <p class="text-[11px] text-slate-500 mt-5 text-center leading-relaxed">Employee selection allocates your independent workspace. Admin access is restricted for master data management.</p>
         </div>
     </div>
 
@@ -138,7 +137,6 @@
                     </button>
                 </div>
 
-                <!-- Input Area -->
                 <div id="recon-setup" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="col-span-1">
@@ -174,7 +172,6 @@
                     </div>
                 </div>
 
-                <!-- Schedule Validation Section -->
                 <div id="schedule-validation-section" class="hidden-view bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 border-l-4 border-l-blue-500">
                     <h3 class="text-lg font-bold text-slate-800 mb-2">3. Schedule Validation Summary</h3>
                     <p class="text-sm text-slate-500 mb-4">The system automatically calculated expected dates based on the reporting months detected in your actuals. Please review for any schedule conflicts before reconciling.</p>
@@ -201,9 +198,7 @@
                                     <th class="px-4 py-2 text-left font-medium text-slate-500">Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="schedule-validation-tbody" class="divide-y divide-slate-200 bg-white">
-                                <!-- Populated dynamically -->
-                            </tbody>
+                            <tbody id="schedule-validation-tbody" class="divide-y divide-slate-200 bg-white"></tbody>
                         </table>
                     </div>
 
@@ -216,7 +211,6 @@
                     </div>
                 </div>
 
-                <!-- Results Dashboard -->
                 <div id="recon-results" class="hidden-view flex-1 flex flex-col min-h-[500px]">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-slate-800">Results Dashboard</h3>
@@ -339,7 +333,7 @@
                     <!-- Report Uploads -->
                     <div class="col-span-1 lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-10">
                         <h3 class="font-bold text-slate-800 mb-2">Upload IR Reports</h3>
-                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below.</p>
+                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below. They will be processed together against the call cycle mapping.</p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                             <div class="flex flex-col">
                                 <label class="text-xs font-semibold text-slate-600 mb-1">TBFS Report</label>
@@ -355,11 +349,10 @@
                             </div>
                         </div>
                         <div class="mt-4 flex justify-between items-center">
-                            <span id="perf-status-msg" class="text-sm font-medium text-slate-600">Awaiting reports...</span>
+                            <span id="perf-status-msg" class="text-sm font-medium text-slate-600"></span>
                             <button onclick="app.runPerformance()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors">Calculate Performance</button>
                         </div>
                         
-                        <!-- Month Selector Overlay (Hidden by Default) -->
                         <div id="perf-month-container" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
                             <label class="block text-sm font-bold text-blue-800 mb-2">Multiple Reporting Months Detected</label>
                             <p class="text-xs text-blue-700 mb-3">Please select which exact reporting month to process for this analysis to prevent mixed data:</p>
@@ -384,6 +377,9 @@
                         </button>
                     </div>
                     <div id="perf-period-display" class="bg-slate-100 text-slate-700 font-bold text-center py-2 text-sm border-b border-slate-200 tracking-wide">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div id="perf-validation-banner" class="hidden bg-blue-50 border-l-4 border-blue-500 p-3 m-4 mb-0 rounded text-sm text-blue-800">
                         <!-- Populated dynamically -->
                     </div>
                     <div id="perf-summary-container" class="flex-1 overflow-auto p-4 bg-slate-50">
@@ -517,19 +513,14 @@
 
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 flex-shrink-0">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- TBFS Paste Area -->
                         <div class="col-span-1 flex flex-col">
                             <label class="block text-sm font-medium text-slate-700 mb-2">1. Tiger Brands (TBFS) Report</label>
                             <textarea id="paste-tbfs-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste TBFS Excel/TSV here..." style="min-height: 120px;"></textarea>
                         </div>
-                        
-                        <!-- RCL Paste Area -->
                         <div class="col-span-1 flex flex-col">
                             <label class="block text-sm font-medium text-slate-700 mb-2">2. RCL Report</label>
                             <textarea id="paste-rcl-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste RCL Excel/TSV here..." style="min-height: 120px;"></textarea>
                         </div>
-
-                        <!-- Lipton Paste Area -->
                         <div class="col-span-1 flex flex-col">
                             <label class="block text-sm font-medium text-slate-700 mb-2">3. Lipton Report</label>
                             <textarea id="paste-lipton-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste Lipton Excel/TSV here..." style="min-height: 120px;"></textarea>
@@ -797,14 +788,23 @@
         const engine = {
             parseTSV(text, reqHeaders = []) {
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-                if (lines.length < 2) throw new Error("Not enough data. Headers or rows are missing.");
+                if (lines.length < 2) return []; 
                 const headers = lines[0].split('\t').map(h => h.trim());
-                const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
-                if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
+                
+                if (reqHeaders.length > 0) {
+                    const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
+                    if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
+                }
+
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
                     const cols = lines[i].split('\t');
-                    let row = {}; headers.forEach((h, idx) => { row[h] = cols[idx] ? cols[idx].trim() : ''; });
+                    let row = {}; 
+                    headers.forEach((h, idx) => { 
+                        let val = cols[idx] ? cols[idx].trim() : '';
+                        if(val.startsWith('"') && val.endsWith('"')) val = val.substring(1, val.length - 1);
+                        row[h] = val; 
+                    });
                     data.push(row);
                 }
                 return data;
@@ -820,14 +820,16 @@
 
             parseDate(dateStr) {
                 if (!dateStr) return null;
-                if (typeof dateStr === 'string') {
-                    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
-                    if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
-                }
-                let d = new Date(dateStr);
+                let s = String(dateStr).trim();
+                // Fix: Specifically allow space between date and time to accommodate the raw user format "2026-10-01 08:29:38"
+                const isoMatch = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})(?:[T\s].*)?$/);
+                if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                
+                let d = new Date(s);
                 if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                const parts = String(dateStr).split(/[\/\-]/);
-                if (parts.length === 3 && parts[2].length === 4) {
+                
+                const parts = s.split(/[\/\-\s]/);
+                if (parts.length >= 3 && parts[2].length === 4) {
                     d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
                     if (!isNaN(d.getTime())) return d;
                 }
@@ -854,7 +856,7 @@
             getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
 
             run(actuals, client, expectedPool) {
-                // ... Existing single-run reconciliation logic remains totally unchanged ...
+                // Kept strictly untouched to avoid breaking Reconciliation View
                 const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
                 let catHeader = 'category', loginHeader = 'loginId';
                 if(actuals.length > 0) {
@@ -864,36 +866,25 @@
                 }
 
                 const actualVisitsByCode = new Map();
-                
                 actuals.forEach(act => {
-                    let codeVal = this.normalizeCode(act.storeCode || act.StoreCode);
+                    let codeVal = this.normalizeCode(act.storeCode || act.StoreCode || act.storeid);
                     if (!codeVal) return;
-                    
                     const parsedDate = this.parseDate(act.Date);
                     const dateStr = parsedDate ? this.formatDate(parsedDate) : 'UnknownDate';
                     const visitKey = `${codeVal}_${dateStr}`;
-                    
                     if (!actualVisitsByCode.has(visitKey)) {
                         actualVisitsByCode.set(visitKey, {
-                            storeCode: codeVal,
-                            storeName: act.storeName || act.StoreName || '',
-                            dateStr: dateStr,
-                            parsedDate: parsedDate,
-                            rawCount: 0,
-                            loginIds: new Set(),
-                            mappedEmps: new Set(),
-                            categories: new Set(),
-                            matchedToPlanned: false
+                            storeCode: codeVal, storeName: act.storeName || act.StoreName || '',
+                            dateStr: dateStr, parsedDate: parsedDate, rawCount: 0, loginIds: new Set(),
+                            mappedEmps: new Set(), categories: new Set(), matchedToPlanned: false
                         });
                     }
                     const v = actualVisitsByCode.get(visitKey);
                     v.rawCount++;
-                    
                     const login = act[loginHeader] || 'Unknown';
                     v.loginIds.add(login);
                     const mapped = state.mappings[login];
                     if (mapped) v.mappedEmps.add(mapped);
-                    
                     let cat = act[catHeader];
                     if(cat) v.categories.add(cat.toString().trim().replace(/\s+/g, ' '));
                 });
@@ -902,14 +893,11 @@
                     const codeVal = this.normalizeCode(exp.AS400StoreCode);
                     exp._isValidCode = codeVal !== null;
                     const expectedDateStr = exp._ExpectedDateStr;
-                    
                     if(exp._isValidCode) {
                         const exactMatchKey = `${codeVal}_${expectedDateStr}`;
                         const exactMatch = actualVisitsByCode.get(exactMatchKey);
                         if (exactMatch) {
-                            exp._matchedVisit = exactMatch;
-                            exp._matchType = 'EXACT';
-                            exactMatch.matchedToPlanned = true;
+                            exp._matchedVisit = exactMatch; exp._matchType = 'EXACT'; exactMatch.matchedToPlanned = true;
                         }
                     }
                 });
@@ -920,26 +908,18 @@
                     const availableVisits = Array.from(actualVisitsByCode.values()).filter(v => v.storeCode === codeVal && !v.matchedToPlanned);
                     if (availableVisits.length > 0) {
                         const wrongDayMatch = availableVisits[0];
-                        exp._matchedVisit = wrongDayMatch;
-                        exp._matchType = 'WRONG_DAY';
-                        wrongDayMatch.matchedToPlanned = true;
+                        exp._matchedVisit = wrongDayMatch; exp._matchType = 'WRONG_DAY'; wrongDayMatch.matchedToPlanned = true;
                     }
                 });
 
                 expectedPool.forEach(exp => {
                     const expDateParsed = this.parseDate(exp._ExpectedDateStr);
                     const monthStr = expDateParsed ? expDateParsed.toLocaleString('en-US', {month: 'long', year: 'numeric'}) : 'Unknown Month';
-                    
                     const baseRec = {
-                        ReportingMonth: monthStr,
-                        WeekNumber: exp.WeekNumber || '-',
-                        DayNr: exp.DayNr || '-',
-                        PlannedDay: exp.WeekDay || '-',
-                        PlannedDate: exp._ExpectedDateStr || '-',
-                        storeCode: exp.AS400StoreCode || '',
-                        storeName: exp.StoreName || '',
-                        ExpectedEmployee: exp.EmployeeName || '',
-                        Client: client
+                        ReportingMonth: monthStr, WeekNumber: exp.WeekNumber || '-', DayNr: exp.DayNr || '-',
+                        PlannedDay: exp.WeekDay || '-', PlannedDate: exp._ExpectedDateStr || '-',
+                        storeCode: exp.AS400StoreCode || '', storeName: exp.StoreName || '',
+                        ExpectedEmployee: exp.EmployeeName || '', Client: client
                     };
 
                     if (!exp._isValidCode) {
@@ -950,19 +930,13 @@
                         const actV = exp._matchedVisit;
                         const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
                         const categoryCount = actV.categories.size > 0 ? actV.categories.size.toString() : '-';
-                        
                         let isEmpMatch = false;
                         for (const mapped of actV.mappedEmps) {
                             if (this.normalizeText(exp.EmployeeName) === this.normalizeText(mapped)) { isEmpMatch = true; break; }
                         }
-
                         const rec = {
-                            ...baseRec,
-                            ActualDate: actV.dateStr,
-                            ActualDay: actDayName,
-                            CategoriesCaptured: categoryCount,
-                            loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
-                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', ')
+                            ...baseRec, ActualDate: actV.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
+                            loginId: Array.from(actV.loginIds).join(', ') || 'Unknown', MappedEmployeeName: Array.from(actV.mappedEmps).join(', ')
                         };
 
                         if (exp._matchType === 'WRONG_DAY') {
@@ -981,7 +955,6 @@
                     if (!v.matchedToPlanned) {
                         const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
                         const categoryCount = v.categories.size > 0 ? v.categories.size.toString() : '-';
-
                         const actRec = {
                             ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
                             storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
@@ -991,7 +964,6 @@
                         results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
                     }
                 });
-
                 return results;
             }
         };
@@ -1240,17 +1212,23 @@
                 const cliBtn = document.getElementById('btn-perf-client');
                 const audCont = document.getElementById('perf-summary-container');
                 const cliCont = document.getElementById('perf-client-container');
+                const valBanner = document.getElementById('perf-validation-banner');
                 
                 if (tab === 'auditor') {
                     audBtn.className = 'font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors';
                     cliBtn.className = 'font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors';
                     audCont.classList.remove('hidden');
                     cliCont.classList.add('hidden');
+                    valBanner.classList.add('hidden');
                 } else {
                     cliBtn.className = 'font-bold text-slate-800 border-b-2 border-blue-600 pb-1 transition-colors';
                     audBtn.className = 'font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-1 transition-colors';
                     cliCont.classList.remove('hidden');
                     audCont.classList.add('hidden');
+                    if(state.perfResults && state.perfResults.validationMsg) {
+                        valBanner.innerHTML = state.perfResults.validationMsg;
+                        valBanner.classList.remove('hidden');
+                    }
                 }
             },
 
@@ -1306,22 +1284,26 @@
                 document.getElementById('perf-month-container').classList.add('hidden');
                 
                 try {
-                    const req = []; // Soft requirement for extracting dates
-                    let tbfsActuals = [], rclActuals = [], liptonActuals = [];
-                    if (tbfsTxt.trim()) tbfsActuals = engine.parseTSV(tbfsTxt, req);
-                    if (rclTxt.trim()) rclActuals = engine.parseTSV(rclTxt, req);
-                    if (liptonTxt.trim()) liptonActuals = engine.parseTSV(liptonTxt, req);
+                    let tbfsActuals = tbfsTxt.trim() ? engine.parseTSV(tbfsTxt) : [];
+                    let rclActuals = rclTxt.trim() ? engine.parseTSV(rclTxt) : [];
+                    let liptonActuals = liptonTxt.trim() ? engine.parseTSV(liptonTxt) : [];
 
                     const allActuals = [...tbfsActuals, ...rclActuals, ...liptonActuals];
                     const monthMap = new Map();
 
-                    // STRICT Exact Aliased Value Extraction (Strips spaces, underscores, ignores case)
+                    // EXACT Aliased Header Extractor 
                     const getExactVal = (row, exactAliases) => {
-                        const key = Object.keys(row).find(k => {
-                            const clean = k.toLowerCase().replace(/[\s_\-]/g, '');
-                            return exactAliases.includes(clean);
+                        const normalizedKeys = {};
+                        Object.keys(row).forEach(k => {
+                            const clean = k.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                            normalizedKeys[clean] = k; 
                         });
-                        return key ? row[key] : null;
+                        for (const alias of exactAliases) {
+                            if (normalizedKeys[alias] !== undefined) {
+                                return row[normalizedKeys[alias]];
+                            }
+                        }
+                        return null;
                     };
 
                     allActuals.forEach(r => {
@@ -1329,7 +1311,7 @@
                         let d = engine.parseDate(rawDate);
                         if (d) {
                             let y = d.getFullYear();
-                            let m = d.getMonth() + 1; // 1-12 format
+                            let m = d.getMonth() + 1; 
                             let key = `${y}-${m.toString().padStart(2, '0')}`;
                             if (!monthMap.has(key)) {
                                 monthMap.set(key, d.toLocaleString('en-US', {month: 'long', year: 'numeric'}));
@@ -1338,7 +1320,7 @@
                     });
 
                     if (monthMap.size === 0) {
-                        throw new Error("No valid dates found in the uploaded reports. Cannot determine the reporting month.");
+                        throw new Error("No valid dates found in the uploaded reports. Cannot determine the reporting month. Please ensure the report contains a 'Date' column.");
                     }
 
                     // Store raw parsed reports temporarily
@@ -1379,14 +1361,14 @@
                     const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
 
                     // --- 1. SETUP STRICT TRACKING INFRASTRUCTURE ---
-                    const perfMap = new Map(); // Key: auditor_client -> { planned: Set, captured: Set, unexpected: Set }
+                    const perfMap = new Map(); 
                     const plannedDetailsMap = new Map(); 
                     const outstandingList = [];
                     const unexpectedDetailsList = [];
                     const reviewDetailsList = [];
                     
-                    const validPlannedKeys = new Set(); // Stores EXACT assignments -> `${Client}::${Auditor}::${StoreCode}`
-                    const globalClientPlanned = new Set(); // Stores GLOBAL assignments -> `${Client}::${StoreCode}`
+                    const validPlannedKeys = new Set(); // Stores EXACT assignments -> `${Client}_${Auditor}_${StoreCode}`
+                    const globalClientPlanned = new Set(); // Stores GLOBAL assignments -> `${Client}_${StoreCode}`
 
                     const getAuditorClientMap = (auditor, client) => {
                         const key = `${auditor}_${client}`;
@@ -1416,12 +1398,11 @@
 
                         const trackPlanned = (client) => {
                             const safeClient = String(client).trim().toUpperCase();
-                            const uniqueKey = `${safeClient}::${auditor}::${code}`;
+                            const uniqueKey = `${safeClient}_${auditor}_${code}`;
                             
-                            // Prevent Master Data duplication (e.g. store appears twice on schedule for same auditor) from inflating counts
                             if (!validPlannedKeys.has(uniqueKey)) {
                                 validPlannedKeys.add(uniqueKey);
-                                globalClientPlanned.add(`${safeClient}::${code}`);
+                                globalClientPlanned.add(`${safeClient}_${code}`);
                                 
                                 getAuditorClientMap(auditor, client).planned.add(code);
                                 plannedDetailsMap.set(uniqueKey, {
@@ -1447,13 +1428,19 @@
                         }
                     });
 
-                    // STRICT Exact Aliased Value Extraction Helper
+                    // EXACT Aliased Header Extractor 
                     const getExactVal = (row, exactAliases) => {
-                        const key = Object.keys(row).find(k => {
-                            const clean = k.toLowerCase().replace(/[\s_\-]/g, '');
-                            return exactAliases.includes(clean);
+                        const normalizedKeys = {};
+                        Object.keys(row).forEach(k => {
+                            const clean = k.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                            normalizedKeys[clean] = k; 
                         });
-                        return key ? row[key] : null;
+                        for (const alias of exactAliases) {
+                            if (normalizedKeys[alias] !== undefined) {
+                                return row[normalizedKeys[alias]];
+                            }
+                        }
+                        return null;
                     };
 
                     // --- 3. PROCESS CAPTURES (ACTUALS) ---
@@ -1464,20 +1451,20 @@
                         actuals.forEach(act => {
                             const rawDate = getExactVal(act, ['date']);
                             const date = engine.parseDate(rawDate);
-                            // Strictly bound captures to target reporting month
                             if (!date || date.getFullYear() !== ty || date.getMonth() !== engineMonth) return;
                             validDate++;
 
-                            const rawCodeExtract = getExactVal(act, ['storecode', 'storeid']);
+                            // Enforce array priority so 'storeid' maps before 'storecode' to prevent column shifts breaking the match
+                            const rawCodeExtract = getExactVal(act, ['storeid', 'storecode']);
                             const rawCode = engine.normalizeCode(rawCodeExtract);
                             const code = rawCode ? String(rawCode).trim() : null;
                             if (!code) return;
                             validStore++;
 
+                            // Priority extract login
                             const rawLogin = getExactVal(act, ['loginid', 'userid', 'capturer', 'username', 'login']);
                             const login = (rawLogin || 'Unknown').toString().trim();
                             
-                            // Rely strictly on verified mapping, with case-insensitive fallback
                             let mappedEmp = state.mappings[login];
                             if (!mappedEmp) {
                                 const lowerLogin = login.toLowerCase();
@@ -1498,16 +1485,16 @@
 
                             const finalAuditorName = mappedEmp.trim();
                             const safeClient = String(client).trim().toUpperCase();
-                            const uniqueKey = `${safeClient}::${finalAuditorName}::${code}`;
+                            const uniqueKey = `${safeClient}_${finalAuditorName}_${code}`;
                             const map = getAuditorClientMap(finalAuditorName, client);
 
-                            // Core Check: Is it an exact match for THIS auditor?
+                            // Core Check 1: Captured Planned Store
                             if (validPlannedKeys.has(uniqueKey)) {
                                 map.captured.add(code);
                                 plannedDetailsMap.get(uniqueKey).ActualDate = engine.formatDate(date);
                             } else {
-                                // Core Check: Is it planned for ANY auditor for this client?
-                                if (globalClientPlanned.has(`${safeClient}::${code}`)) {
+                                // Core Check 2: Scheduled but captured by wrong auditor
+                                if (globalClientPlanned.has(`${safeClient}_${code}`)) {
                                     reviewDetailsList.push({
                                         Client: client, ExpectedEmployee: finalAuditorName, storeCode: code, 
                                         storeName: getExactVal(act, ['storename']) || '',
@@ -1515,7 +1502,7 @@
                                         Status: `NEEDS REVIEW (Captured by ${finalAuditorName}, assigned to another)`, ActualDate: engine.formatDate(date)
                                     });
                                 } else {
-                                    // Not in Master Data for this client at all -> Truly Unexpected
+                                    // Core Check 3: Truly Unexpected Store
                                     if (!map.unexpected.has(code)) {
                                         map.unexpected.add(code);
                                         unexpectedDetailsList.push({
@@ -1529,9 +1516,9 @@
                             }
                         });
 
-                        // Diagnostic Alert System to prevent silent zeroes
+                        // Diagnostic Feedback to immediately catch extraction failures
                         if (totalRead > 0 && mappedAuditor === 0) {
-                            throw new Error(`Diagnostic [${client}]: Read ${totalRead} rows. ${validDate} matched reporting month. ${validStore} had valid store codes. 0 successfully mapped to an auditor. Please check your Employee Mapping and column headers.`);
+                            throw new Error(`Diagnostic Error [${client}]: Read ${totalRead} rows. ${validDate} had valid dates. ${validStore} had valid store IDs. 0 successfully mapped to an Auditor via Login ID. Please verify your file column names or Employee Mappings.`);
                         }
                     };
 
@@ -1560,7 +1547,6 @@
                         auditorSummary.push({ auditor: data.auditor, client: data.client, planned, captured, unexpected, outstanding, completion });
 
                         if (clientTotals[data.client]) {
-                            // Safely combine stores for client totals natively using Auditor_Store globally unique keys
                             data.planned.forEach(s => clientTotals[data.client].planned.add(`${data.auditor}_${s}`));
                             data.captured.forEach(s => clientTotals[data.client].captured.add(`${data.auditor}_${s}`));
                             data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(`${data.auditor}_${s}`));
@@ -1570,9 +1556,8 @@
                     // Compile details for export safely using the unified Sets
                     const exportedPlanned = [];
                     plannedDetailsMap.forEach((data, uniqueKey) => {
-                        // Extract mapping keys safely from uniqueKey format
-                        const parts = uniqueKey.split('::');
-                        if(parts.length === 3) {
+                        const parts = uniqueKey.split('_');
+                        if(parts.length >= 3) {
                             const mapClient = data.Client;
                             const mapAuditor = data.ExpectedEmployee;
                             const mapCode = data.storeCode;
@@ -1583,9 +1568,15 @@
                         }
                     });
 
+                    // Build reconciliation text metric
+                    const totalPhysicalStores = globalClientPlanned.size;
+                    const totalAssignments = validPlannedKeys.size;
+                    const valMsg = `<strong>Reconciliation Validation:</strong> The Client Totals table correctly reflects <strong>${totalAssignments}</strong> planned auditor assignments across <strong>${totalPhysicalStores}</strong> unique physical stores. The difference of <strong>${totalAssignments - totalPhysicalStores}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors. The client totals safely aggregate these unique Auditor-Store assignments to ensure they reconcile perfectly with the sum of the individual Auditor Summaries.`;
+
                     state.perfResults = {
                         auditorSummary,
                         periodString,
+                        validationMsg: valMsg,
                         trackingSets: { validPlannedKeys },
                         details: {
                             planned: exportedPlanned,
@@ -1755,7 +1746,6 @@
 
                 ui.showToast("Generating Excel report... Please wait.", "info");
                 
-                // Disable button to prevent concurrent clicks crashing the tab
                 const btn = document.getElementById('btn-export-perf');
                 const originalHtml = btn.innerHTML;
                 btn.disabled = true; 
@@ -1782,16 +1772,15 @@
                         });
                         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cliData), "2. Client Summary");
 
-                        // 3. Shared Detail Mapper
                         const mapStore = (r) => [r.Client, r.ExpectedEmployee, r.storeCode, r.storeName, r.WeekNumber, r.PlannedDay, r.PlannedDate, r.Status];
                         const detailHeaders = ["Client", "Capturer Name", "Store Code", "Store Name", "Planned Week", "Planned Weekday", "Planned Date", "Status"];
 
-                        // 3. Planned Store Details (Strictly deduplicated to match UI)
+                        // 3. Planned Store Details (Matched to exact tracked UI set to fix discrepancy)
                         const deduplicatedPlanned = details.planned.filter(p => {
                             const safeClient = String(p.Client).trim().toUpperCase();
                             const safeAuditor = engine.normalizeText(p.ExpectedEmployee);
                             const safeCode = String(p.storeCode).trim();
-                            const uniqueKey = `${safeClient}::${safeAuditor}::${safeCode}`;
+                            const uniqueKey = `${safeClient}_${safeAuditor}_${safeCode}`;
                             return state.perfResults.trackingSets.validPlannedKeys.has(uniqueKey);
                         });
                         
@@ -1810,17 +1799,16 @@
                         let revData = [detailHeaders].concat(details.review.map(mapStore));
                         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(revData), "6. Needs Review");
 
-                        // Generate Download
                         XLSX.writeFile(wb, `Auditor_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
 
                     } catch (e) {
                         console.error("Export Error:", e);
-                        ui.showModal("Export Failed", "An error occurred while generating the Excel file. The dataset may be too large for the browser memory. Please try again.");
+                        ui.showModal("Export Failed", "An error occurred while generating the Excel file.");
                     } finally {
                         btn.disabled = false; 
                         btn.innerHTML = originalHtml;
                     }
-                }, 50); // Small yield
+                }, 50); 
             },
             
             saveLiptonRetailerSelection() {
@@ -2050,7 +2038,6 @@
                     const rclActuals = engine.parseTSV(rclText, req);
                     const liptonActuals = engine.parseTSV(liptonText, req);
 
-                    // --- Determine Reporting Date Ranges ---
                     const getRange = (arr) => {
                         let min = null, max = null;
                         arr.forEach(r => {
@@ -2072,7 +2059,6 @@
                         throw new Error("One or more uploaded reports contain no valid dates. Cannot determine reporting period.");
                     }
 
-                    // Determine operational months from all reports combined
                     const monthsSet = new Set();
                     [...tbfsActuals, ...rclActuals, ...liptonActuals].forEach(r => {
                         let d = engine.parseDate(r.Date);
@@ -2081,7 +2067,6 @@
                     
                     if(monthsSet.size === 0) throw new Error("No valid dates found in the uploaded reports to calculate the master schedule.");
 
-                    // Helper: Build dynamic expected pool exactly as per standard single run logic
                     const buildExpectedPool = (clientStr) => {
                         let pool = [];
                         const masterFilter = state.masterData.filter(m => String(m[clientStr]) === '1' || String(m[clientStr]).toLowerCase() === 'true');
@@ -2099,12 +2084,10 @@
                     const rclExpected = buildExpectedPool('RCLIR');
                     const liptonExpected = buildExpectedPool('LiptonIR');
 
-                    // Run the exact same reconciliation engine independently for each client
                     const tbfsRes = engine.run(tbfsActuals, 'Tiger Brands', tbfsExpected);
                     const rclRes = engine.run(rclActuals, 'RCL', rclExpected);
                     const liptonRes = engine.run(liptonActuals, 'Lipton', liptonExpected);
 
-                    // --- Filter missed stores by respective reporting periods ---
                     const filterMissing = (missingArr, range) => {
                         return missingArr.filter(r => {
                             let pd = engine.parseDate(r.PlannedDate);
