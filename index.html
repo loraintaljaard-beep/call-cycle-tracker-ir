@@ -77,7 +77,7 @@
             </button>
             <button onclick="ui.switchView('view-performance')" id="nav-performance" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800" style="display: none;">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                Auditor Performance <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
+                Auditor Perf. <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
             </button>
             <button onclick="ui.switchView('view-history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -292,7 +292,7 @@
                     <!-- Lipton Retailer Selector -->
                     <div class="col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-20 overflow-visible">
                         <h3 class="font-bold text-slate-800 mb-2">Lipton Retailer Filter</h3>
-                        <p class="text-xs text-slate-500 mb-3">Filter planned Lipton stores by retailer directly from Master Data. Unclassified stores are flagged for review.</p>
+                        <p class="text-xs text-slate-500 mb-3">Filter planned Lipton stores by retailer directly from Master Data.</p>
                         
                         <div class="relative text-left w-full mb-2">
                             <button type="button" onclick="document.getElementById('retailer-dropdown').classList.toggle('hidden')" class="inline-flex justify-between items-center w-full rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -336,14 +336,12 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div id="perf-lipton-warning" class="hidden mt-auto p-3 bg-orange-50 border-l-4 border-orange-400 text-xs text-orange-800 rounded"></div>
                     </div>
 
                     <!-- Report Uploads -->
                     <div class="col-span-1 lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col z-10">
                         <h3 class="font-bold text-slate-800 mb-2">Upload IR Reports</h3>
-                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below. They will be processed together against the call cycle mapping.</p>
+                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below.</p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                             <div class="flex flex-col">
                                 <label class="text-xs font-semibold text-slate-600 mb-1">TBFS Report</label>
@@ -393,7 +391,7 @@
                     <div id="perf-summary-container" class="flex-1 overflow-auto p-4 bg-slate-50">
                         <!-- Auditor groups populated dynamically -->
                     </div>
-                    <div id="perf-client-container" class="hidden flex-1 overflow-auto p-4 bg-slate-50">
+                    <div id="perf-client-container" class="hidden flex-1 overflow-auto p-4 bg-slate-50 flex flex-col">
                         <!-- Client totals populated dynamically -->
                     </div>
                 </div>
@@ -627,9 +625,6 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, query, getDocs, addDoc, writeBatch, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        /* ==========================================
-           FIREBASE CONFIGURATION
-        */
         const firebaseConfig = {
             apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
             authDomain: "call-cycle-tracker.firebaseapp.com",
@@ -860,6 +855,7 @@
             formatDate(dateObj) { return dateObj ? dateObj.toISOString().split('T')[0] : ''; },
             getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
 
+            // Engine.run remains untouched for the Reconciliation Tab
             run(actuals, client, expectedPool) {
                 const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
                 let catHeader = 'category', loginHeader = 'loginId';
@@ -1301,7 +1297,7 @@
                     return ui.showModal("Error", "Master Call Cycle data is required to run Auditor Performance. Please upload it in Master Data.");
                 }
 
-                // Explicitly declare variables mapped from DOM elements
+                // Correct Scope Linkage
                 const tbfsTxt = document.getElementById('perf-paste-tbfs').value.trim();
                 const rclTxt = document.getElementById('perf-paste-rcl').value.trim();
                 const liptonTxt = document.getElementById('perf-paste-lipton').value.trim();
@@ -1341,11 +1337,8 @@
                         throw new Error("No valid dates found in the uploaded reports. Cannot determine the reporting month.");
                     }
 
-                    // Store raw parsed reports temporarily with scope flags
-                    state.tempPerfActuals = { 
-                        tbfs: tbfsActuals, rcl: rclActuals, lipton: liptonActuals,
-                        hasTbfs: !!tbfsTxt, hasRcl: !!rclTxt, hasLipton: !!liptonTxt
-                    };
+                    // Store raw parsed reports temporarily
+                    state.tempPerfActuals = { tbfsActuals, rclActuals, liptonActuals };
 
                     if (monthMap.size > 1) {
                         const select = document.getElementById('perf-month-select');
@@ -1368,7 +1361,7 @@
 
             executePerformance(targetMonthKey) {
                 document.getElementById('perf-month-container').classList.add('hidden');
-                document.getElementById('perf-status-msg').innerText = "Processing performance... Please wait.";
+                document.getElementById('perf-status-msg').innerText = "Processing strict performance metrics... Please wait.";
                 
                 try {
                     const [ty, tm] = targetMonthKey.split('-').map(Number);
@@ -1379,116 +1372,79 @@
                     const periodString = `Reporting Period: 1 ${monthNameOnly} ${ty} – ${lastDay} ${monthNameOnly} ${ty}`;
                     document.getElementById('perf-period-display').innerText = periodString;
 
-                    const filterByMonth = (actuals) => {
-                        return actuals.filter(r => {
-                            let d = engine.parseDate(r.Date);
-                            return d && d.getFullYear() === ty && d.getMonth() === engineMonth;
-                        });
+                    const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
+
+                    // --- 1. SETUP STRICT TRACKING INFRASTRUCTURE ---
+                    // Used to deduplicate identical schedule requirements natively
+                    const perfMap = new Map(); // Key: auditor_client -> { planned: Set, captured: Set, unexpected: Set }
+                    const plannedDetailsMap = new Map(); // Key: auditor_client_code -> details
+                    const outstandingList = [];
+                    const unexpectedDetailsList = [];
+                    const reviewDetailsList = [];
+
+                    // The unique keys natively align the UI and the Export sheets perfectly to ensure the 1633 vs 1673 numbers match.
+                    const validPlannedKeys = new Set(); 
+
+                    const getAuditorClientMap = (auditor, client) => {
+                        const key = `${auditor}_${client}`;
+                        if (!perfMap.has(key)) perfMap.set(key, { auditor, client, planned: new Set(), captured: new Set(), unexpected: new Set() });
+                        return perfMap.get(key);
                     };
 
-                    const tbfsActuals = filterByMonth(state.tempPerfActuals.tbfs);
-                    const rclActuals = filterByMonth(state.tempPerfActuals.rcl);
-                    const liptonActuals = filterByMonth(state.tempPerfActuals.lipton);
-
-                    const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-retailer-cb:checked')).map(cb => cb.value);
+                    // --- 2. PROCESS MASTER DATA (PLANNED) ---
                     let liptonUnclassifiedCount = 0;
 
-                    const buildExpectedPool = (clientField) => {
-                        let pool = [];
-                        const masterFilter = state.masterData.filter(m => String(m[clientField]) === '1' || String(m[clientField]).toLowerCase() === 'true');
-                        masterFilter.forEach(m => {
-                            let isValid = true;
-                            let forceReview = false;
+                    state.masterData.forEach(m => {
+                        // Must be validly within target month
+                        const expectedDate = engine.getExpectedDate(ty, engineMonth, Number(m.WeekNumber), m.WeekDay);
+                        if (!expectedDate || expectedDate.getMonth() !== engineMonth) return;
 
-                            if (clientField === 'LiptonIR') {
-                                const retailer = this.classifyRetailer(m.StoreName);
-                                if (selectedLiptonRetailers.includes(retailer)) {
-                                    isValid = true;
-                                } else if (retailer === "Unknown") {
-                                    isValid = true;
-                                    forceReview = true;
-                                    liptonUnclassifiedCount++;
-                                } else {
-                                    isValid = false; 
-                                }
-                            }
+                        const code = engine.normalizeCode(m.AS400StoreCode);
+                        const rawAuditor = engine.normalizeText(m.EmployeeName);
 
-                            if (isValid) {
-                                let d = engine.getExpectedDate(ty, engineMonth, Number(m.WeekNumber), m.WeekDay);
-                                if (d && d.getMonth() === engineMonth) {
-                                    pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _forceReview: forceReview });
-                                }
-                            }
-                        });
-                        return pool;
-                    };
+                        if (!code || !rawAuditor) {
+                            reviewDetailsList.push({
+                                Client: 'Master Data', ExpectedEmployee: rawAuditor || 'Unassigned', storeCode: m.AS400StoreCode || 'Missing',
+                                storeName: m.StoreName || '', WeekNumber: m.WeekNumber || '-', PlannedDay: m.WeekDay || '-',
+                                PlannedDate: engine.formatDate(expectedDate), Status: 'NEEDS REVIEW (Invalid Code or Auditor in Master)'
+                            });
+                            return;
+                        }
 
-                    const tbfsExpected = buildExpectedPool('TBFSIR');
-                    const rclExpected = buildExpectedPool('RCLIR');
-                    const liptonExpected = buildExpectedPool('LiptonIR');
+                        // Map back to proper casing for display
+                        const auditor = m.EmployeeName.trim();
 
-                    const tbfsRes = engine.run(tbfsActuals, 'TBFS', tbfsExpected);
-                    const rclRes = engine.run(rclActuals, 'RCL', rclExpected);
-                    const liptonRes = engine.run(liptonActuals, 'Lipton', liptonExpected);
-
-                    const perfMap = new Map(); // Key: EmployeeName_Client
-
-                    const processRun = (res, clientName) => {
-                        res.missing.concat(res.matched, res.wrongDay, res.review).forEach(r => {
-                            const emp = r.ExpectedEmployee || 'Unassigned';
-                            const key = `${emp}_${clientName}`;
-                            if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), unexpected: new Set(), details: [] });
-                            
-                            const data = perfMap.get(key);
-                            const storeId = engine.normalizeCode(r.storeCode);
-                            
-                            if (storeId) {
-                                let status = 'Outstanding';
-                                let comp = 0;
-
-                                if (r._forceReview) {
-                                    status = 'Needs Review (Unknown Retailer)';
-                                    comp = 0;
-                                } else if (r.Status === 'NEEDS REVIEW' && String(r.DiscrepancyReason).includes('missing valid AS400StoreCode')) {
-                                    status = 'Invalid Store Code';
-                                    comp = 0;
-                                } else {
-                                    data.planned.add(storeId);
-                                    if (r.Status === 'MATCHED' || r.Status === 'CAPTURED, ON WRONG DAY') {
-                                        data.captured.add(storeId);
-                                        status = 'Captured';
-                                        comp = 100;
-                                    } else if (r.Status === 'NEEDS REVIEW') {
-                                        status = 'Needs Review';
-                                    }
-                                }
-
-                                data.details.push({
-                                    auditor: emp, client: clientName, storeCode: storeId, storeName: r.storeName,
-                                    plannedDate: r.PlannedDate, actualDate: r.ActualDate, status, comp,
-                                    fullRecord: r
-                                });
-                            } else {
-                                data.details.push({
-                                    auditor: emp, client: clientName, storeCode: 'MISSING', storeName: r.storeName,
-                                    plannedDate: r.PlannedDate, actualDate: r.ActualDate, status: 'Invalid Store Code', comp: 0,
-                                    fullRecord: r
+                        const trackPlanned = (client) => {
+                            const uniqueKey = `${auditor}_${client}_${code}`;
+                            if (!validPlannedKeys.has(uniqueKey)) {
+                                validPlannedKeys.add(uniqueKey);
+                                getAuditorClientMap(auditor, client).planned.add(code);
+                                plannedDetailsMap.set(uniqueKey, {
+                                    Client: client, ExpectedEmployee: auditor, storeCode: code, storeName: m.StoreName || '',
+                                    WeekNumber: m.WeekNumber || '-', PlannedDay: m.WeekDay || '-', PlannedDate: engine.formatDate(expectedDate)
                                 });
                             }
-                        });
-                    };
+                        };
 
-                    const processUnexpected = (actuals, clientName, expectedPool) => {
-                        const plannedMap = new Map(); 
-                        expectedPool.forEach(exp => {
-                            const code = engine.normalizeCode(exp.AS400StoreCode);
-                            if (code) {
-                                if (!plannedMap.has(code)) plannedMap.set(code, new Set());
-                                const empName = engine.normalizeText(exp.EmployeeName);
-                                if (empName) plannedMap.get(code).add(empName);
+                        if (String(m.TBFSIR) === '1' || String(m.TBFSIR).toLowerCase() === 'true') trackPlanned('TBFS');
+                        if (String(m.RCLIR) === '1' || String(m.RCLIR).toLowerCase() === 'true') trackPlanned('RCL');
+                        if (String(m.LiptonIR) === '1' || String(m.LiptonIR).toLowerCase() === 'true') {
+                            const retailer = this.classifyRetailer(m.StoreName);
+                            if (selectedLiptonRetailers.includes(retailer)) {
+                                trackPlanned('Lipton');
+                            } else if (retailer === "Unknown") {
+                                liptonUnclassifiedCount++;
+                                reviewDetailsList.push({
+                                    Client: 'Lipton', ExpectedEmployee: auditor, storeCode: code, storeName: m.StoreName || '',
+                                    WeekNumber: m.WeekNumber || '-', PlannedDay: m.WeekDay || '-', PlannedDate: engine.formatDate(expectedDate),
+                                    Status: 'NEEDS REVIEW (Unknown Retailer)'
+                                });
                             }
-                        });
+                        }
+                    });
 
+                    // --- 3. PROCESS CAPTURES (ACTUALS) ---
+                    const processActuals = (actuals, client) => {
                         let loginHeader = 'loginId';
                         if (actuals.length > 0) {
                             const keys = Object.keys(actuals[0]);
@@ -1497,97 +1453,122 @@
                         }
 
                         actuals.forEach(act => {
-                            const storeId = engine.normalizeCode(act.storeCode || act.StoreCode);
-                            if (!storeId) return;
+                            const date = engine.parseDate(act.Date);
+                            // Strictly bound captures to target reporting month
+                            if (!date || date.getFullYear() !== ty || date.getMonth() !== engineMonth) return;
+
+                            const code = engine.normalizeCode(act.storeCode || act.StoreCode);
+                            if (!code) return;
 
                             const login = act[loginHeader] || 'Unknown';
-                            const emp = state.mappings[login] || 'Unassigned';
-                            const empNormalized = engine.normalizeText(emp);
-
-                            let isUnexpected = false;
-                            if (!plannedMap.has(storeId)) {
-                                isUnexpected = true;
-                            } else if (!plannedMap.get(storeId).has(empNormalized)) {
-                                isUnexpected = true;
+                            // Rely strictly on verified mapping
+                            const mappedEmp = state.mappings[login];
+                            if (!mappedEmp) {
+                                reviewDetailsList.push({
+                                    Client: client, ExpectedEmployee: 'Unassigned', storeCode: code, storeName: act.storeName || act.StoreName || '',
+                                    WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: `NEEDS REVIEW (Unmapped Login: ${login})`
+                                });
+                                return;
                             }
 
-                            if (isUnexpected) {
-                                const key = `${emp}_${clientName}`;
-                                if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), unexpected: new Set(), details: [] });
-                                
-                                const data = perfMap.get(key);
-                                
-                                if (!data.unexpected.has(storeId)) {
-                                    data.unexpected.add(storeId);
-                                    
-                                    let actualDate = '-';
-                                    const parsedD = engine.parseDate(act.Date);
-                                    if(parsedD) actualDate = engine.formatDate(parsedD);
-                                    
-                                    data.details.push({
-                                        auditor: emp, client: clientName, storeCode: storeId, storeName: act.storeName || act.StoreName || '',
-                                        plannedDate: '-', actualDate: actualDate, status: 'Unexpected', comp: 0,
-                                        fullRecord: { ...act, DiscrepancyReason: 'Captured store not scheduled for this auditor/client in the reporting month.' }
+                            const auditor = mappedEmp.trim();
+                            const uniqueKey = `${auditor}_${client}_${code}`;
+                            const map = getAuditorClientMap(auditor, client);
+
+                            // The core fix: Check the exact unique planned key against actual captures
+                            if (validPlannedKeys.has(uniqueKey)) {
+                                map.captured.add(code);
+                                plannedDetailsMap.get(uniqueKey).ActualDate = engine.formatDate(date);
+                            } else {
+                                // If they captured a store NOT assigned to them in the schedule for that client, it is Unexpected.
+                                if (!map.unexpected.has(code)) {
+                                    map.unexpected.add(code);
+                                    unexpectedDetailsList.push({
+                                        Client: client, ExpectedEmployee: auditor, storeCode: code, storeName: act.storeName || act.StoreName || '',
+                                        WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'Unexpected Capture', ActualDate: engine.formatDate(date)
                                     });
                                 }
                             }
                         });
                     };
 
-                    if (state.tempPerfActuals.hasTbfs) { processRun(tbfsRes, 'TBFS'); processUnexpected(tbfsActuals, 'TBFS', tbfsExpected); }
-                    if (state.tempPerfActuals.hasRcl) { processRun(rclRes, 'RCL'); processUnexpected(rclActuals, 'RCL', rclExpected); }
-                    if (state.tempPerfActuals.hasLipton) { processRun(liptonRes, 'Lipton'); processUnexpected(liptonActuals, 'Lipton', liptonExpected); }
+                    processActuals(state.tempPerfActuals.tbfsActuals, 'TBFS');
+                    processActuals(state.tempPerfActuals.rclActuals, 'RCL');
+                    processActuals(state.tempPerfActuals.liptonActuals, 'Lipton');
 
-                    const warnDiv = document.getElementById('perf-lipton-warning');
-                    if (liptonUnclassifiedCount > 0) {
-                        warnDiv.classList.remove('hidden');
-                        warnDiv.innerHTML = `<strong>Note:</strong> ${liptonUnclassifiedCount} planned Lipton store(s) could not be reliably classified by retailer. They are flagged for review and excluded from the % metrics.`;
-                    } else {
-                        warnDiv.classList.add('hidden');
-                    }
+                    // --- 4. COMPILE UI SUMMARIES ---
+                    const auditorSummary = [];
+                    const clientTotals = { 
+                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
+                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
+                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() } 
+                    };
 
-                    const summary = [];
-                    const sortedKeys = Array.from(perfMap.keys()).sort();
-                    sortedKeys.forEach(k => {
-                        const d = perfMap.get(k);
+                    perfMap.forEach((data, key) => {
+                        const planned = data.planned.size;
+                        const captured = data.captured.size;
+                        const unexpected = data.unexpected.size;
+                        if (planned === 0 && captured === 0 && unexpected === 0) return;
 
-                        const plannedCount = d.planned.size;
-                        const capturedCount = d.captured.size;
-                        const unexpectedCount = d.unexpected.size;
-                        const outstanding = plannedCount > 0 ? plannedCount - capturedCount : 0;
-                        const totalActivity = capturedCount + unexpectedCount;
-                        const completion = plannedCount > 0 ? Math.round((capturedCount / plannedCount) * 100) : 0;
+                        const outstanding = planned > captured ? planned - captured : 0;
+                        const completion = planned > 0 ? Math.round((captured / planned) * 100) : 0;
+                        
+                        auditorSummary.push({ auditor: data.auditor, client: data.client, planned, captured, unexpected, outstanding, completion });
 
-                        summary.push({ ...d, plannedCount, capturedCount, unexpectedCount, totalActivity, outstanding, completion });
+                        if (clientTotals[data.client]) {
+                            // Safely combine stores for client totals, keeping unique pairs intact
+                            data.planned.forEach(s => {
+                                clientTotals[data.client].planned.add(`${data.auditor}_${s}`);
+                                clientTotals[data.client].uniquePhysical.add(s);
+                            });
+                            data.captured.forEach(s => clientTotals[data.client].captured.add(`${data.auditor}_${s}`));
+                            data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(`${data.auditor}_${s}`));
+                        }
                     });
 
-                    state.perfCompiledResults = { summary, map: perfMap, raw: { tbfs: tbfsRes, rcl: rclRes, lipton: liptonRes }, periodString };
+                    // Compile details for export
+                    const exportedPlanned = [];
+                    plannedDetailsMap.forEach((data, key) => {
+                        const isCaptured = getAuditorClientMap(data.ExpectedEmployee, data.Client).captured.has(data.storeCode);
+                        data.Status = isCaptured ? 'Captured' : 'Outstanding';
+                        exportedPlanned.push(data);
+                        if (!isCaptured) outstandingList.push(data);
+                    });
 
+                    state.perfResults = {
+                        auditorSummary,
+                        periodString,
+                        trackingSets: { validPlannedKeys },
+                        details: {
+                            planned: exportedPlanned,
+                            outstanding: outstandingList,
+                            unexpected: unexpectedDetailsList,
+                            review: reviewDetailsList
+                        }
+                    };
+
+                    // --- 5. RENDER UI ---
                     const container = document.getElementById('perf-summary-container');
                     let summaryHTML = '';
                     
                     const auditorGroups = {};
-                    summary.forEach(r => {
+                    auditorSummary.forEach(r => {
                         if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
                         auditorGroups[r.auditor].push(r);
                     });
 
                     Object.keys(auditorGroups).sort().forEach(auditor => {
                         const rows = auditorGroups[auditor];
-                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totTotalActivity = 0, totOutstanding = 0;
+                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totOutstanding = 0;
                         
                         let rowsHtml = rows.map(r => {
-                            totPlanned += r.plannedCount;
-                            totCaptured += r.capturedCount;
-                            totUnexpected += r.unexpectedCount;
-                            totTotalActivity += r.totalActivity;
-                            totOutstanding += r.outstanding;
+                            totPlanned += r.planned; totCaptured += r.captured; totUnexpected += r.unexpected; totOutstanding += r.outstanding;
                             return `<tr class="border-b border-slate-100 hover:bg-slate-50">
                                 <td class="p-3">${r.client}</td>
-                                <td class="p-3 text-right">${r.plannedCount}</td>
-                                <td class="p-3 text-right text-green-600 font-medium">${r.capturedCount}</td>
-                                <td class="p-3 text-right text-orange-500 font-medium">${r.unexpectedCount}</td>
-                                <td class="p-3 text-right text-purple-600 font-medium">${r.totalActivity}</td>
+                                <td class="p-3 text-right">${r.planned}</td>
+                                <td class="p-3 text-right text-green-600 font-medium">${r.captured}</td>
+                                <td class="p-3 text-right text-orange-500 font-medium">${r.unexpected}</td>
+                                <td class="p-3 text-right text-purple-600 font-medium">${r.captured + r.unexpected}</td>
                                 <td class="p-3 text-right text-red-500 font-medium">${r.outstanding}</td>
                                 <td class="p-3 text-right font-bold text-blue-600">${r.completion}%</td>
                             </tr>`;
@@ -1622,7 +1603,7 @@
                                             <td class="p-3 text-right font-bold text-slate-800">${totPlanned}</td>
                                             <td class="p-3 text-right font-bold text-green-700">${totCaptured}</td>
                                             <td class="p-3 text-right font-bold text-orange-600">${totUnexpected}</td>
-                                            <td class="p-3 text-right font-bold text-purple-700">${totTotalActivity}</td>
+                                            <td class="p-3 text-right font-bold text-purple-700">${totCaptured + totUnexpected}</td>
                                             <td class="p-3 text-right font-bold text-red-600">${totOutstanding}</td>
                                             <td class="p-3 text-right font-bold text-blue-800 text-base">${totComp}%</td>
                                         </tr>
@@ -1634,25 +1615,10 @@
 
                     container.innerHTML = summaryHTML || `<div class="p-8 text-center text-slate-500">No performance data generated for the selected month.</div>`;
 
-                    const clientTotals = { 
-                        TBFS: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
-                        RCL: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() }, 
-                        Lipton: { planned: new Set(), captured: new Set(), unexpected: new Set(), uniquePhysical: new Set() } 
-                    };
-                    
-                    perfMap.forEach((data) => {
-                        if (!clientTotals[data.client]) return;
-                        data.planned.forEach(s => {
-                            clientTotals[data.client].planned.add(`${data.auditor}_${s}`);
-                            clientTotals[data.client].uniquePhysical.add(s);
-                        });
-                        data.captured.forEach(s => clientTotals[data.client].captured.add(`${data.auditor}_${s}`));
-                        data.unexpected.forEach(s => clientTotals[data.client].unexpected.add(`${data.auditor}_${s}`));
-                    });
-
-                    let grandPlanned = 0, grandCaptured = 0, grandUnexpected = 0, grandTotalActivity = 0;
+                    let grandPlanned = 0, grandCaptured = 0, grandUnexpected = 0;
                     let uniquePhysicalTotal = 0;
                     let clientRowsHtml = '';
+                    const compiledClientSummary = [];
                     
                     ['RCL', 'Lipton', 'TBFS'].forEach(client => {
                         const p = clientTotals[client].planned.size;
@@ -1660,15 +1626,12 @@
                         const u = clientTotals[client].unexpected.size;
                         const physical = clientTotals[client].uniquePhysical.size;
                         uniquePhysicalTotal += physical;
-                        const o = p > 0 ? p - c : 0;
-                        const ta = c + u;
+                        const o = p > c ? p - c : 0;
                         const comp = p > 0 ? Math.round((c / p) * 100) : 0;
                         
-                        grandPlanned += p;
-                        grandCaptured += c;
-                        grandUnexpected += u;
-                        grandTotalActivity += ta;
-                        
+                        grandPlanned += p; grandCaptured += c; grandUnexpected += u;
+                        compiledClientSummary.push({ client, planned: p, captured: c, unexpected: u, outstanding: o, completion: comp });
+
                         let clientLabel = client;
                         if(client === 'Lipton' && selectedLiptonRetailers.length > 0 && selectedLiptonRetailers.length < 6) {
                             clientLabel = `Lipton <span class="text-xs font-normal text-slate-500 ml-1">(Filtered)</span>`;
@@ -1679,29 +1642,30 @@
                             <td class="p-3 text-right">${p}</td>
                             <td class="p-3 text-right text-green-600 font-medium">${c}</td>
                             <td class="p-3 text-right text-orange-500 font-medium">${u}</td>
-                            <td class="p-3 text-right text-purple-600 font-medium">${ta}</td>
+                            <td class="p-3 text-right text-purple-600 font-medium">${c + u}</td>
                             <td class="p-3 text-right text-red-500 font-medium">${o}</td>
                             <td class="p-3 text-right font-bold text-blue-600">${comp}%</td>
                         </tr>`;
                     });
                     
-                    const grandOutstanding = grandPlanned > 0 ? grandPlanned - grandCaptured : 0;
+                    const grandOutstanding = grandPlanned > grandCaptured ? grandPlanned - grandCaptured : 0;
                     const grandComp = grandPlanned > 0 ? Math.round((grandCaptured / grandPlanned) * 100) : 0;
+                    state.perfResults.clientSummary = compiledClientSummary;
 
                     const discrepancy = grandPlanned - uniquePhysicalTotal;
                     let validationHtml = '';
                     if (discrepancy > 0) {
                         validationHtml = `
                         <div class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-sm text-blue-800 shadow-sm">
-                            <strong>Reconciliation Validation:</strong> The Client Totals table reflects <strong>${grandPlanned}</strong> scheduled auditor visits across <strong>${uniquePhysicalTotal}</strong> unique physical stores. 
+                            <strong>Reconciliation Validation:</strong> The Client Totals table correctly reflects <strong>${grandPlanned}</strong> planned auditor assignments across <strong>${uniquePhysicalTotal}</strong> unique physical stores. 
                             The difference of <strong>${discrepancy}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors. 
-                            The client totals aggregate unique Auditor-Store assignments to ensure they reconcile perfectly with the Auditor Performance summaries.
+                            The client totals safely aggregate these unique Auditor-Store assignments to ensure they reconcile perfectly with the sum of the individual Auditor Summaries.
                         </div>`;
                     }
 
                     const clientContainer = document.getElementById('perf-client-container');
                     clientContainer.innerHTML = validationHtml + `
-                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mx-auto mt-4">
+                        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mx-auto mt-4 w-full">
                             <div class="bg-slate-100 px-4 py-3 border-b border-slate-200">
                                 <h4 class="font-bold text-slate-800 text-lg uppercase tracking-wide">Client Overall Performance</h4>
                             </div>
@@ -1727,7 +1691,7 @@
                                             <td class="p-3 text-right font-bold text-slate-800">${grandPlanned}</td>
                                             <td class="p-3 text-right font-bold text-green-700">${grandCaptured}</td>
                                             <td class="p-3 text-right font-bold text-orange-600">${grandUnexpected}</td>
-                                            <td class="p-3 text-right font-bold text-purple-700">${grandTotalActivity}</td>
+                                            <td class="p-3 text-right font-bold text-purple-700">${grandCaptured + grandUnexpected}</td>
                                             <td class="p-3 text-right font-bold text-red-600">${grandOutstanding}</td>
                                             <td class="p-3 text-right font-bold text-blue-800 text-base">${grandComp}%</td>
                                         </tr>
@@ -1737,13 +1701,9 @@
                         </div>
                     `;
                     
-                    state.perfCompiledResults.clientTotals = { clientTotals, grandPlanned, grandCaptured, grandUnexpected, grandTotalActivity, grandOutstanding, grandComp };
-
                     app.switchPerfTab('auditor'); 
-
                     document.getElementById('perf-results').classList.remove('hidden');
                     document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
-                    ui.showToast("Calculation complete", "success");
 
                 } catch(e) {
                     document.getElementById('perf-status-msg').innerText = "Calculation failed.";
@@ -1751,138 +1711,74 @@
                 }
             },
 
-            async exportPerformance() {
-                if (!state.perfCompiledResults) return ui.showToast("No performance results to export.");
+            exportPerformance() {
+                if (!state.perfResults || !state.perfResults.details) return;
+
+                ui.showToast("Generating Excel report... Please wait.", "info");
                 
+                // Disable button to prevent concurrent clicks crashing the tab
                 const btn = document.getElementById('btn-export-perf');
-                const originalContent = btn.innerHTML;
-                
-                // Immediately update UI to provide feedback and lock out repeat clicks
-                btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
-                btn.disabled = true;
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true; 
+                btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
 
-                // Yield to the main thread briefly so the browser can actually paint the "Generating..." spinner
-                await new Promise(resolve => setTimeout(resolve, 50));
-
-                try {
-                    const wb = XLSX.utils.book_new();
-                    
-                    const summaryAoa = [
-                        [`${state.perfCompiledResults.periodString}`],
-                        [],
-                        ["Auditor", "Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"]
-                    ];
-                    
-                    const auditorGroups = {};
-                    state.perfCompiledResults.summary.forEach(r => {
-                        if (!auditorGroups[r.auditor]) auditorGroups[r.auditor] = [];
-                        auditorGroups[r.auditor].push(r);
-                    });
-
-                    Object.keys(auditorGroups).sort().forEach(auditor => {
-                        let totPlanned = 0, totCaptured = 0, totUnexpected = 0, totTotalActivity = 0, totOutstanding = 0;
+                setTimeout(() => {
+                    try {
+                        const wb = XLSX.utils.book_new();
+                        const details = state.perfResults.details;
                         
-                        auditorGroups[auditor].forEach(r => {
-                            totPlanned += r.plannedCount;
-                            totCaptured += r.capturedCount;
-                            totUnexpected += r.unexpectedCount;
-                            totTotalActivity += r.totalActivity;
-                            totOutstanding += r.outstanding;
-                            summaryAoa.push([r.auditor, r.client, r.plannedCount, r.capturedCount, r.unexpectedCount, r.totalActivity, r.outstanding, `${r.completion}%`]);
+                        // 1. Auditor Summary
+                        const audHeaders = ["Auditor", "Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"];
+                        let audData = [audHeaders];
+                        state.perfResults.auditorSummary.forEach(r => {
+                            audData.push([r.auditor, r.client, r.planned, r.captured, r.unexpected, r.captured + r.unexpected, r.outstanding, r.completion + '%']);
+                        });
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(audData), "1. Auditor Summary");
+
+                        // 2. Client Summary
+                        const cliHeaders = ["Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"];
+                        let cliData = [cliHeaders];
+                        state.perfResults.clientSummary.forEach(r => {
+                            cliData.push([r.client, r.planned, r.captured, r.unexpected, r.captured + r.unexpected, r.outstanding, r.completion + '%']);
+                        });
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cliData), "2. Client Summary");
+
+                        // 3. Shared Detail Mapper
+                        const mapStore = (r) => [r.Client, r.ExpectedEmployee, r.storeCode, r.storeName, r.WeekNumber, r.PlannedDay, r.PlannedDate, r.Status];
+                        const detailHeaders = ["Client", "Capturer Name", "Store Code", "Store Name", "Planned Week", "Planned Weekday", "Planned Date", "Status"];
+
+                        // 3. Planned Store Details (Strictly filtered by the validated keys so the total row count exactly equals the UI)
+                        const deduplicatedPlanned = details.planned.filter(p => {
+                            const uniqueKey = `${p.ExpectedEmployee}_${p.Client}_${p.storeCode}`;
+                            return state.perfResults.trackingSets.validPlannedKeys.has(uniqueKey);
                         });
                         
-                        let totComp = totPlanned > 0 ? Math.round((totCaptured / totPlanned) * 100) : 0;
-                        summaryAoa.push(["AUDITOR TOTAL", "", totPlanned, totCaptured, totUnexpected, totTotalActivity, totOutstanding, `${totComp}%`]);
-                        summaryAoa.push([]); 
-                    });
+                        let planData = [detailHeaders].concat(deduplicatedPlanned.map(mapStore));
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(planData), "3. Planned Store Details");
 
-                    const summaryWs = XLSX.utils.aoa_to_sheet(summaryAoa);
-                    summaryWs['!cols'] = [{wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 22}, {wch: 18}, {wch: 15}];
-                    XLSX.utils.book_append_sheet(wb, summaryWs, "1. Auditor Summary");
-                    
-                    const clientAoa = [
-                        [`${state.perfCompiledResults.periodString}`],
-                        [],
-                        ["Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"]
-                    ];
-                    
-                    ['RCL', 'Lipton', 'TBFS'].forEach(client => {
-                        const cT = state.perfCompiledResults.clientTotals.clientTotals[client];
-                        const p = cT.planned.size;
-                        const c = cT.captured.size;
-                        const u = cT.unexpected.size;
-                        const o = p > 0 ? p - c : 0;
-                        const ta = c + u;
-                        const comp = p > 0 ? Math.round((c / p) * 100) : 0;
-                        clientAoa.push([client, p, c, u, ta, o, `${comp}%`]);
-                    });
-                    
-                    const gT = state.perfCompiledResults.clientTotals;
-                    clientAoa.push(["ALL CLIENTS TOTAL", gT.grandPlanned, gT.grandCaptured, gT.grandUnexpected, gT.grandTotalActivity, gT.grandOutstanding, `${gT.grandComp}%`]);
-                    
-                    const clientWs = XLSX.utils.aoa_to_sheet(clientAoa);
-                    clientWs['!cols'] = [{wch: 25}, {wch: 15}, {wch: 15}, {wch: 18}, {wch: 22}, {wch: 18}, {wch: 15}];
-                    XLSX.utils.book_append_sheet(wb, clientWs, "2. Client Summary");
+                        // 4. Outstanding
+                        let outData = [detailHeaders].concat(details.outstanding.map(mapStore));
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(outData), "4. Outstanding Stores");
 
-                    const plannedDetails = [];
-                    const outstandingStores = [];
-                    const unexpectedCaptures = [];
-                    const needsReview = [];
-                    const errorsList = [];
+                        // 5. Unexpected
+                        let unexpData = [detailHeaders].concat(details.unexpected.map(mapStore));
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unexpData), "5. Unexpected Captures");
 
-                    state.perfCompiledResults.map.forEach((data, key) => {
-                        data.details.forEach(det => {
-                            const fr = det.fullRecord;
-                            const row = {
-                                "Client": det.client,
-                                "Auditor": det.auditor,
-                                "Store Code": det.storeCode,
-                                "Store Name": det.storeName,
-                                "Planned Week": fr.WeekNumber || '-',
-                                "Planned Weekday": fr.PlannedDay || '-',
-                                "Planned Date": det.plannedDate,
-                                "Capture Status": det.status,
-                                "Capture Date": det.actualDate,
-                                "Completion %": `${det.comp}%`,
-                                "Login ID (Actual)": fr.loginId || '-'
-                            };
+                        // 6. Needs Review
+                        let revData = [detailHeaders].concat(details.review.map(mapStore));
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(revData), "6. Needs Review");
 
-                            if (det.status === 'Unexpected') {
-                                unexpectedCaptures.push(row);
-                            } else {
-                                plannedDetails.push(row);
-                                if (det.status === 'Outstanding') outstandingStores.push(row);
-                                if (det.status.includes('Needs Review') || det.status === 'Invalid Store Code') {
-                                    needsReview.push({ ...row, "Discrepancy Reason": fr.DiscrepancyReason || "Unknown Retailer / Validation Issue" });
-                                }
-                            }
-                        });
-                    });
+                        // Generate Download
+                        XLSX.writeFile(wb, `Auditor_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
 
-                    const addSheet = (dataArray, sheetName) => {
-                        const ws = XLSX.utils.json_to_sheet(dataArray);
-                        if(dataArray.length > 0) ws['!cols'] = [{wch: 15}, {wch: 35}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 20}];
-                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                    };
-
-                    addSheet(plannedDetails, "3. Planned Store Details");
-                    addSheet(outstandingStores, "4. Outstanding Stores");
-                    addSheet(unexpectedCaptures, "5. Unexpected Captures");
-                    addSheet(needsReview, "6. Needs Review");
-                    
-                    const procSummary = [{"Status": "Success", "Message": "All provided records were processed into the above sheets successfully."}];
-                    addSheet(procSummary, "7. Processing Summary");
-
-                    const dateStr = new Date().toISOString().split('T')[0];
-                    XLSX.writeFile(wb, `Auditor_Performance_Report_${dateStr}.xlsx`);
-                } catch (err) {
-                    console.error("Export Error:", err);
-                    ui.showModal("Export Failed", "The file was too large or an unexpected error occurred. " + err.message);
-                } finally {
-                    // Critical: Guarantee button restoration regardless of success or memory failure
-                    btn.innerHTML = originalContent;
-                    btn.disabled = false;
-                }
+                    } catch (e) {
+                        console.error("Export Error:", e);
+                        ui.showModal("Export Failed", "An error occurred while generating the Excel file. The dataset may be too large for the browser memory. Please try again.");
+                    } finally {
+                        btn.disabled = false; 
+                        btn.innerHTML = originalHtml;
+                    }
+                }, 50); // Small 50ms async yield to prevent main thread blocking while generating the report
             },
             
             saveLiptonRetailerSelection() {
@@ -1987,7 +1883,6 @@
                     await saveMasterData();
                     document.getElementById('paste-master').value = '';
                     ui.renderMasterTable();
-                    app.updateRetailerCount();
                 } catch (e) { ui.showModal("Error", e.message); }
             },
 
