@@ -79,6 +79,10 @@
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 History
             </button>
+            <button onclick="ui.switchView('view-consolidated')" id="nav-consolidated" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Consolidated Report
+            </button>
         </nav>
         <div class="p-4 border-t border-slate-800 text-xs flex flex-col gap-2">
             <div class="flex items-center justify-between text-slate-300 bg-slate-800/50 p-2 rounded">
@@ -104,6 +108,7 @@
                     <option value="view-master" id="mobile-nav-master">Master Data</option>
                     <option value="view-mappings" id="mobile-nav-mappings">Employee Map</option>
                     <option value="view-history">History</option>
+                    <option value="view-consolidated">Consolidated Report</option>
                 </select>
                 <button onclick="ui.logout()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg></button>
             </div>
@@ -377,6 +382,81 @@
                             <p class="text-slate-500 col-span-full">No history available yet.</p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Consolidated Report View -->
+            <div id="view-consolidated" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Consolidated Multi-Client Capturer Report</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste all three IR captures to generate a consolidated missing stores report for all capturers.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 flex-shrink-0">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- TBFS Paste Area -->
+                        <div class="col-span-1 flex flex-col">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">1. Tiger Brands (TBFS) Report</label>
+                            <textarea id="paste-tbfs-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste TBFS Excel/TSV here..." style="min-height: 120px;"></textarea>
+                        </div>
+                        
+                        <!-- RCL Paste Area -->
+                        <div class="col-span-1 flex flex-col">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">2. RCL Report</label>
+                            <textarea id="paste-rcl-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste RCL Excel/TSV here..." style="min-height: 120px;"></textarea>
+                        </div>
+
+                        <!-- Lipton Paste Area -->
+                        <div class="col-span-1 flex flex-col">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">3. Lipton Report</label>
+                            <textarea id="paste-lipton-cons" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste Lipton Excel/TSV here..." style="min-height: 120px;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between items-center border-t border-slate-100 pt-4">
+                        <div id="cons-status-msg" class="text-sm text-slate-600 font-medium">Awaiting reports...</div>
+                        <button onclick="app.runConsolidation()" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Consolidate Reports
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cons-results-summary" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Consolidation Complete
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-6">Successfully processed all three client reports against the active master call cycle. Summary of missed stores detected:</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Lipton Missed</p>
+                            <p id="cons-lipton-count" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">RCL Missed</p>
+                            <p id="cons-rcl-count" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">TBFS Missed</p>
+                            <p id="cons-tbfs-count" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center">
+                            <p class="text-blue-600 text-[10px] font-bold uppercase tracking-wider">Total Missed</p>
+                            <p id="cons-total-count" class="text-2xl font-bold text-blue-800 mt-1">0</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <button onclick="app.downloadConsolidatedExcel()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium shadow-md transition-colors flex items-center text-lg">
+                            <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Download Consolidated Report (Excel)
+                        </button>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-4">Workbook contains worksheets for 8 configured capturers across all clients.</p>
                 </div>
             </div>
 
@@ -1188,6 +1268,152 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Results");
                 XLSX.writeFile(wb, `CallCycle_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
+            },
+
+            async runConsolidation() {
+                if (!state.masterData || state.masterData.length === 0) {
+                    return ui.showModal("Error", "Master Call Cycle data is required. Please paste it in the Master Data view first.");
+                }
+                const tbfsText = document.getElementById('paste-tbfs-cons').value;
+                const rclText = document.getElementById('paste-rcl-cons').value;
+                const liptonText = document.getElementById('paste-lipton-cons').value;
+
+                if (!tbfsText.trim() || !rclText.trim() || !liptonText.trim()) {
+                    return ui.showModal("Error", "All three client reports (TBFS, RCL, Lipton) must be pasted to consolidate.");
+                }
+
+                ui.showToast("Processing Consolidated Report...", "info");
+                document.getElementById('cons-status-msg').innerText = "Processing reports... Please wait.";
+                document.getElementById('cons-results-summary').classList.add('hidden');
+
+                try {
+                    const req = ['Date', 'storeCode'];
+                    const tbfsActuals = engine.parseTSV(tbfsText, req);
+                    const rclActuals = engine.parseTSV(rclText, req);
+                    const liptonActuals = engine.parseTSV(liptonText, req);
+
+                    // Determine operational months from all reports combined
+                    const monthsSet = new Set();
+                    [...tbfsActuals, ...rclActuals, ...liptonActuals].forEach(r => {
+                        let d = engine.parseDate(r.Date);
+                        if (d) monthsSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+                    });
+                    
+                    if(monthsSet.size === 0) throw new Error("No valid dates found in the uploaded reports to calculate the master schedule.");
+
+                    // Helper: Build dynamic expected pool exactly as per standard single run logic
+                    const buildExpectedPool = (clientStr) => {
+                        let pool = [];
+                        const masterFilter = state.masterData.filter(m => String(m[clientStr]) === '1' || String(m[clientStr]).toLowerCase() === 'true');
+                        masterFilter.forEach(m => {
+                            monthsSet.forEach(mo => {
+                                const [y, mm] = mo.split('-');
+                                let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
+                                if (d) pool.push({ ...m, _ExpectedDateStr: engine.formatDate(d) });
+                            });
+                        });
+                        return pool;
+                    };
+
+                    const tbfsExpected = buildExpectedPool('TBFSIR');
+                    const rclExpected = buildExpectedPool('RCLIR');
+                    const liptonExpected = buildExpectedPool('LiptonIR');
+
+                    // Run the exact same reconciliation engine independently for each client
+                    const tbfsRes = engine.run(tbfsActuals, 'Tiger Brands', tbfsExpected);
+                    const rclRes = engine.run(rclActuals, 'RCL', rclExpected);
+                    const liptonRes = engine.run(liptonActuals, 'Lipton', liptonExpected);
+
+                    this.lastConsolidatedResults = {
+                        TBFSIR: tbfsRes.missing,
+                        RCLIR: rclRes.missing,
+                        LiptonIR: liptonRes.missing
+                    };
+
+                    const totalTBFS = tbfsRes.missing.length;
+                    const totalRCL = rclRes.missing.length;
+                    const totalLipton = liptonRes.missing.length;
+                    
+                    document.getElementById('cons-tbfs-count').innerText = totalTBFS;
+                    document.getElementById('cons-rcl-count').innerText = totalRCL;
+                    document.getElementById('cons-lipton-count').innerText = totalLipton;
+                    document.getElementById('cons-total-count').innerText = totalTBFS + totalRCL + totalLipton;
+                    
+                    document.getElementById('cons-status-msg').innerText = "Consolidation successfully completed!";
+                    document.getElementById('cons-results-summary').classList.remove('hidden');
+
+                    ui.showToast("Consolidation Successful", "success");
+
+                } catch (e) {
+                    document.getElementById('cons-status-msg').innerText = "Processing failed.";
+                    ui.showModal("Error during Consolidation", e.message);
+                }
+            },
+
+            downloadConsolidatedExcel() {
+                if (!this.lastConsolidatedResults) return;
+
+                const capturers = [
+                    "MULALO KHASHANE", "BONGANI GOODWILL SITHEBE", "KAMOGELO PETRUS MOKOLOKO", 
+                    "LEON NTSANE", "DENVER CHRISTOPHER ABRAHAMS", "RENDANI MOSES MUKATUNI", 
+                    "STEVENS NKOSINATHI MALULEKA", "SIYAKHOLWA AMOS NDZIMA"
+                ];
+
+                const wb = XLSX.utils.book_new();
+
+                capturers.forEach(cap => {
+                    const filterByCap = (arr) => arr.filter(r => engine.normalizeText(r.ExpectedEmployee) === engine.normalizeText(cap));
+
+                    const liptonData = filterByCap(this.lastConsolidatedResults.LiptonIR);
+                    const rclData = filterByCap(this.lastConsolidatedResults.RCLIR);
+                    const tbfsData = filterByCap(this.lastConsolidatedResults.TBFSIR);
+
+                    let aoa = [];
+                    // Title Header
+                    aoa.push([`Missed Stores Report: ${cap}`]);
+                    aoa.push([]);
+
+                    const headerRow = ["Client", "Capturer Name", "Store Code", "Store Name", "Planned Week", "Planned Weekday", "Planned Date", "Status/Reason"];
+
+                    const appendSection = (clientName, dataArr) => {
+                        aoa.push([`--- ${clientName} ---`]);
+                        aoa.push(headerRow);
+                        
+                        if (dataArr.length === 0) {
+                            aoa.push(["No missed stores detected for this client.", "", "", "", "", "", "", ""]);
+                        } else {
+                            dataArr.forEach(r => {
+                                aoa.push([
+                                    r.Client, 
+                                    r.ExpectedEmployee, 
+                                    r.storeCode, // Stored as text natively by SheetJS arrays to preserve leading zeros
+                                    r.storeName, 
+                                    r.WeekNumber, 
+                                    r.PlannedDay, 
+                                    r.PlannedDate, 
+                                    r.Status // Extracted directly from existing logic
+                                ]);
+                            });
+                        }
+                        aoa.push([]); // Spacer row
+                    };
+
+                    // Add sections in strictly specified order
+                    appendSection('Lipton', liptonData);
+                    appendSection('RCL', rclData);
+                    appendSection('Tiger Brands', tbfsData);
+
+                    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+                    // Freeze top rows & Adjust column widths for readability
+                    ws['!cols'] = [{wch: 15}, {wch: 30}, {wch: 18}, {wch: 35}, {wch: 15}, {wch: 18}, {wch: 15}, {wch: 20}];
+
+                    let sheetName = cap.substring(0, 31); // Ensure valid excel tab length
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                });
+
+                const dateStr = new Date().toISOString().split('T')[0];
+                XLSX.writeFile(wb, `Consolidated_Capturer_Missed_Stores_${dateStr}.xlsx`);
             }
         };
 
