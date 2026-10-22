@@ -1476,28 +1476,67 @@
                                 });
                             }
                         });
-                        
-                        res.unexpected.forEach(r => {
-                            const emps = r.MappedEmployeeName && r.MappedEmployeeName !== 'Unassigned' ? r.MappedEmployeeName.split(', ') : ['Unassigned (Unexpected)'];
-                            emps.forEach(emp => {
+                    };
+
+                    const processUnexpected = (actuals, clientName, expectedPool) => {
+                        const plannedMap = new Map(); 
+                        expectedPool.forEach(exp => {
+                            const code = engine.normalizeCode(exp.AS400StoreCode);
+                            if (code) {
+                                if (!plannedMap.has(code)) plannedMap.set(code, new Set());
+                                const empName = engine.normalizeText(exp.EmployeeName);
+                                if (empName) plannedMap.get(code).add(empName);
+                            }
+                        });
+
+                        let loginHeader = 'loginId';
+                        if (actuals.length > 0) {
+                            const keys = Object.keys(actuals[0]);
+                            const foundLog = keys.find(k => /loginid|userid/i.test(k)); 
+                            if (foundLog) loginHeader = foundLog;
+                        }
+
+                        actuals.forEach(act => {
+                            const storeId = engine.normalizeCode(act.storeCode || act.StoreCode);
+                            if (!storeId) return;
+
+                            const login = act[loginHeader] || 'Unknown';
+                            const emp = state.mappings[login] || 'Unassigned';
+                            const empNormalized = engine.normalizeText(emp);
+
+                            let isUnexpected = false;
+                            if (!plannedMap.has(storeId)) {
+                                isUnexpected = true;
+                            } else if (!plannedMap.get(storeId).has(empNormalized)) {
+                                isUnexpected = true;
+                            }
+
+                            if (isUnexpected) {
                                 const key = `${emp}_${clientName}`;
                                 if (!perfMap.has(key)) perfMap.set(key, { auditor: emp, client: clientName, planned: new Set(), captured: new Set(), unexpected: new Set(), details: [] });
-                                const data = perfMap.get(key);
-                                const storeId = engine.normalizeCode(r.storeCode) || 'UNKNOWN';
-                                if (storeId !== 'UNKNOWN') data.unexpected.add(storeId);
                                 
-                                data.details.push({
-                                    auditor: emp, client: clientName, storeCode: storeId, storeName: r.storeName,
-                                    plannedDate: '-', actualDate: r.ActualDate, status: 'Unexpected', comp: 0, fullRecord: r
-                                });
-                            });
+                                const data = perfMap.get(key);
+                                
+                                if (!data.unexpected.has(storeId)) {
+                                    data.unexpected.add(storeId);
+                                    
+                                    let actualDate = '-';
+                                    const parsedD = engine.parseDate(act.Date);
+                                    if(parsedD) actualDate = engine.formatDate(parsedD);
+                                    
+                                    data.details.push({
+                                        auditor: emp, client: clientName, storeCode: storeId, storeName: act.storeName || act.StoreName || '',
+                                        plannedDate: '-', actualDate: actualDate, status: 'Unexpected', comp: 0,
+                                        fullRecord: { ...act, DiscrepancyReason: 'Captured store not scheduled for this auditor/client in the reporting month.' }
+                                    });
+                                }
+                            }
                         });
                     };
 
-                    // Safe scope check here prevents ReferenceErrors entirely
-                    if (state.tempPerfActuals.hasTbfs) processRun(tbfsRes, 'TBFS');
-                    if (state.tempPerfActuals.hasRcl) processRun(rclRes, 'RCL');
-                    if (state.tempPerfActuals.hasLipton) processRun(liptonRes, 'Lipton');
+                    if (state.tempPerfActuals.hasTbfs) { processRun(tbfsRes, 'TBFS'); processUnexpected(tbfsActuals, 'TBFS', tbfsExpected); }
+                    if (state.tempPerfActuals.hasRcl) { processRun(rclRes, 'RCL'); processUnexpected(rclActuals, 'RCL', rclExpected); }
+                    if (state.tempPerfActuals.hasLipton) { processRun(liptonRes, 'Lipton'); processUnexpected(liptonActuals, 'Lipton', liptonExpected); }
 
                     const warnDiv = document.getElementById('perf-lipton-warning');
                     if (liptonUnclassifiedCount > 0) {
