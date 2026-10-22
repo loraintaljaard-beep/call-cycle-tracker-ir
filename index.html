@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* Custom scrollbar for tables */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -21,11 +22,12 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
 
+    <!-- Global Watermark -->
     <div class="fixed bottom-1.5 right-3 z-[9999] text-[10px] text-slate-400/70 pointer-events-none font-medium tracking-wide">
         Created by Lorain Kotze. Powered by Gemini.
     </div>
 
-    <!-- Login View -->
+    <!-- Login View Overlay -->
     <div id="login-view" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center transition-opacity">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full border border-slate-200">
             <div class="flex justify-center mb-4">
@@ -54,29 +56,28 @@
                 </div>
                 <button onclick="ui.login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg shadow transition-colors mt-2">Log In</button>
             </div>
+            <p class="text-[11px] text-slate-500 mt-5 text-center leading-relaxed">Employee selection allocates your independent workspace. Admin access is restricted for master data management.</p>
         </div>
     </div>
 
     <!-- Sidebar Navigation -->
     <aside id="app-aside" class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 hidden md:flex">
         <nav class="flex-1 px-4 py-6 space-y-2">
-            <button onclick="ui.switchView('view-reconcile')" id="nav-reconcile" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+            <button onclick="ui.switchView('view-reconcile')" id="nav-reconcile" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors bg-blue-600 text-white">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                 Reconciliation
             </button>
             <button onclick="ui.switchView('view-master')" id="nav-master" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                 Master Data <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
             </button>
             <button onclick="ui.switchView('view-mappings')" id="nav-mappings" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 Employee Map <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
             </button>
-            <button onclick="ui.switchView('view-performance')" id="nav-performance" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors bg-blue-600 text-white">
-                Auditor Performance <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
-            </button>
             <button onclick="ui.switchView('view-history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 History
-            </button>
-            <button onclick="ui.switchView('view-consolidated')" id="nav-consolidated" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
-                Consolidated Report
             </button>
         </nav>
         <div class="p-4 border-t border-slate-800 text-xs flex flex-col gap-2">
@@ -94,188 +95,299 @@
     </aside>
 
     <main id="app-main" class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative z-10">
+        <!-- Topbar for Mobile -->
         <header class="md:hidden h-16 bg-slate-900 text-white flex items-center px-4 justify-between shadow-md">
-            <h1 class="font-bold">Tracker</h1>
+            <h1 class="font-bold">Call Cycle Tracker</h1>
             <div class="flex items-center gap-3">
                 <select id="mobile-nav" class="bg-slate-800 text-sm rounded border border-slate-700 px-2 py-1" onchange="ui.switchView(this.value)">
                     <option value="view-reconcile">Reconciliation</option>
                     <option value="view-master" id="mobile-nav-master">Master Data</option>
                     <option value="view-mappings" id="mobile-nav-mappings">Employee Map</option>
-                    <option value="view-performance" id="mobile-nav-performance" selected>Auditor Performance</option>
                     <option value="view-history">History</option>
-                    <option value="view-consolidated">Consolidated Report</option>
                 </select>
-                <button onclick="ui.logout()">Out</button>
+                <button onclick="ui.logout()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg></button>
             </div>
         </header>
 
         <div id="main-content" class="flex-1 overflow-y-auto p-4 md:p-8">
             
-            <div id="view-reconcile" class="view-section hidden-view h-full flex flex-col">
-                <h2 class="text-2xl font-bold mb-4">Run Reconciliation</h2>
-                <div class="bg-white p-4 rounded shadow">
-                    <p class="text-sm text-slate-500 mb-2">Paste actual IR captures to compare against the master cycle.</p>
-                    <textarea id="paste-actuals" class="w-full border rounded p-2 h-32"></textarea>
-                    <button onclick="app.processPastedActuals()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">Analyze</button>
-                </div>
-            </div>
-
-            <div id="view-master" class="view-section hidden-view h-full flex flex-col">
-                <h2 class="text-2xl font-bold mb-4">Master Data Configuration</h2>
-                <textarea id="paste-master" class="w-full border rounded p-2 h-32"></textarea>
-                <button onclick="app.confirmProcessMaster()" class="mt-2 bg-slate-800 text-white px-4 py-2 rounded">Process Master Data</button>
-            </div>
-
-            <div id="view-mappings" class="view-section hidden-view h-full flex flex-col">
-                <h2 class="text-2xl font-bold mb-4">Employee Mappings</h2>
-                <div class="bg-white p-4 rounded shadow">
-                    <p class="text-sm text-slate-500 mb-2">Configure mapping between IR capture logins and Master Cycle employee names.</p>
-                    <div id="mappings-list" class="space-y-2"></div>
-                </div>
-            </div>
-
-            <div id="view-history" class="view-section hidden-view h-full flex flex-col">
-                <h2 class="text-2xl font-bold mb-4">History</h2>
-            </div>
-
-            <div id="view-consolidated" class="view-section hidden-view h-full flex flex-col">
-                <h2 class="text-2xl font-bold mb-4">Consolidated Report</h2>
-            </div>
-
-            <!-- Auditor Performance View -->
-            <div id="view-performance" class="view-section h-full flex flex-col">
-                <div class="mb-6 flex-shrink-0">
-                    <h2 class="text-2xl font-bold text-slate-800">Auditor Performance</h2>
-                    <p class="text-slate-500 text-sm mt-1">Upload multiple IR Image reports to calculate accurate completion percentages derived exactly from the Master Call Cycle.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 flex-shrink-0">
-                    <!-- Lipton Selector -->
-                    <div class="col-span-1 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-                        <h3 class="font-bold text-slate-800 mb-2">Lipton Retailer Filter</h3>
-                        <p class="text-xs text-slate-500 mb-3">Filter planned Lipton stores by retailer directly from Master Data.</p>
-                        
-                        <div class="relative w-full">
-                            <button type="button" onclick="document.getElementById('lipton-dropdown-menu').classList.toggle('hidden')" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm flex justify-between items-center text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <span id="lipton-dropdown-text">6 Retailers Selected</span>
-                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </button>
-                            
-                            <div id="lipton-dropdown-menu" class="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg hidden">
-                                <div class="p-2 border-b border-slate-100 flex justify-between">
-                                    <button onclick="app.toggleAllLiptonRetailers(true)" class="text-xs text-blue-600 font-medium hover:underline">Select All</button>
-                                    <button onclick="app.toggleAllLiptonRetailers(false)" class="text-xs text-slate-500 hover:underline">Clear</button>
-                                </div>
-                                <div class="max-h-48 overflow-y-auto p-2 space-y-1">
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="Checkers" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">Checkers</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="Shoprite" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">Shoprite</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="SPAR" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">SPAR</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="SUPERSPAR" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">SUPERSPAR</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="Pick n Pay" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">Pick n Pay</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
-                                        <input type="checkbox" value="Makro" class="perf-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateLiptonDropdownText()">
-                                        <span class="text-sm text-slate-700">Makro</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Reconciliation View -->
+            <div id="view-reconcile" class="view-section h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Run Reconciliation</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste actual IR captures to compare against the master cycle.</p>
                     </div>
+                </div>
 
-                    <!-- Report Uploads -->
-                    <div class="col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="font-bold text-slate-800 mb-2">Upload IR Reports</h3>
-                        <p class="text-xs text-slate-500 mb-3">Paste the contents of your TBFS, RCL, and Lipton reports below. They will be processed together against the call cycle mapping.</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div class="flex flex-col">
-                                <label class="text-[10px] font-bold text-slate-500 mb-1">TBFS Report</label>
-                                <textarea id="perf-paste-tbfs" class="w-full border rounded p-2 text-[10px] h-20" placeholder="Paste TBFS..."></textarea>
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="text-[10px] font-bold text-slate-500 mb-1">RCL Report</label>
-                                <textarea id="perf-paste-rcl" class="w-full border rounded p-2 text-[10px] h-20" placeholder="Paste RCL..."></textarea>
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="text-[10px] font-bold text-slate-500 mb-1">Lipton Report</label>
-                                <textarea id="perf-paste-lipton" class="w-full border rounded p-2 text-[10px] h-20" placeholder="Paste Lipton..."></textarea>
+                <div id="history-banner" class="hidden bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded-lg shadow-sm flex justify-between items-center">
+                    <div>
+                        <span class="font-bold mr-2">Viewing Historical Run:</span> 
+                        <span id="history-banner-details" class="font-medium"></span>
+                    </div>
+                    <button onclick="ui.closeHistoryView()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">
+                        Back to Workspace
+                    </button>
+                </div>
+
+                <!-- Input Area -->
+                <div id="recon-setup" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="col-span-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">1. Select Target Client</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="TBFSIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4" checked>
+                                    <span class="ml-3 font-medium text-slate-700">TBFSIR</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="RCLIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                    <span class="ml-3 font-medium text-slate-700">RCLIR</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                                    <input type="radio" name="client" value="LiptonIR" class="text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                    <span class="ml-3 font-medium text-slate-700">LiptonIR</span>
+                                </label>
                             </div>
                         </div>
-                        <div class="mt-4 flex justify-between items-center">
-                            <span id="perf-status-msg" class="text-sm text-slate-600 font-medium"></span>
-                            <button onclick="app.executePerformance()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow transition-colors">Calculate Performance</button>
+                        <div class="col-span-1 md:col-span-2 flex flex-col">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-medium text-slate-700">2. Paste IR Image Report (Excel / TSV)</label>
+                                <button onclick="app.clearWorkspaceData()" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-2 py-1 bg-red-50 border border-red-200 hover:bg-red-100 rounded transition-colors">Clear Report</button>
+                            </div>
+                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: ticketNo, Date, userid, loginId, storeid, storeCode, storeName, Headline Category..." style="min-height: 150px;"></textarea>
+                            <div class="mt-4 flex justify-end">
+                                <button onclick="app.processPastedActuals()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    Analyze Dates & Continue
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Results Area -->
-                <div id="perf-results" class="hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
-                    <div class="flex justify-between items-end px-4 pt-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
-                        <div class="flex gap-4">
-                            <button onclick="ui.switchPerfTab('auditor')" id="tab-perf-auditor" class="pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Auditor Summary</button>
-                            <button onclick="ui.switchPerfTab('client')" id="tab-perf-client" class="pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent">Client Summary</button>
+                <!-- Schedule Validation Section -->
+                <div id="schedule-validation-section" class="hidden-view bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 border-l-4 border-l-blue-500">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">3. Schedule Validation Summary</h3>
+                    <p class="text-sm text-slate-500 mb-4">The system automatically calculated expected dates based on the reporting months detected in your actuals. Please review for any schedule conflicts before reconciling.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <span class="block font-semibold text-slate-700 mb-1">Detected Reporting Months:</span>
+                            <span id="sv-months" class="text-slate-600"></span>
                         </div>
-                        <button id="btn-export-perf" onclick="app.exportPerformance()" class="mb-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded text-sm font-medium shadow flex items-center transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            Download Excel Report
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <span class="block font-semibold text-slate-700 mb-1">Schedule Conflicts:</span>
+                            <span id="sv-conflicts" class="font-medium"></span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto mb-4 border border-slate-200 rounded">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Employee</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Store</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Wk/Day</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Calculated Date</th>
+                                    <th class="px-4 py-2 text-left font-medium text-slate-500">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedule-validation-tbody" class="divide-y divide-slate-200 bg-white">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button onclick="app.cancelReconciliation()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">Cancel</button>
+                        <button onclick="app.runReconciliation()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Confirm & Reconcile Reports
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Dashboard -->
+                <div id="recon-results" class="hidden-view flex-1 flex flex-col min-h-[500px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Results Dashboard</h3>
+                        <button onclick="ui.resetReconView()" class="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Back to Upload
                         </button>
                     </div>
 
-                    <div id="perf-reporting-period-banner" class="bg-slate-100 py-2 text-center text-sm font-bold text-slate-700 border-b border-slate-200 flex-shrink-0">
-                        Reporting Period: Unknown
-                    </div>
-
-                    <!-- Client Summary Tab -->
-                    <div id="perf-client-view" class="hidden flex-1 flex-col overflow-y-auto p-4 bg-slate-50">
-                        <div id="client-recon-validation-banner" class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-blue-800 rounded flex-shrink-0"></div>
-                        <div class="bg-white rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
-                            <h3 class="font-bold text-slate-800 p-4 border-b border-slate-200 text-lg uppercase tracking-wide">Client Overall Performance</h3>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full text-sm text-left whitespace-nowrap">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="p-4 font-medium text-slate-600">Client</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Planned Stores</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Captured Stores</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Unexpected Stores</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Total Capture Activity</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Outstanding</th>
-                                            <th class="p-4 font-medium text-slate-600 text-right">Completion %</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="perf-client-tbody" class="divide-y divide-slate-100"></tbody>
-                                </table>
-                            </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Expected</p>
+                            <p id="metric-expected" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Matched (Present)</p>
+                            <p id="metric-matched" class="text-2xl font-bold text-green-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Missing</p>
+                            <p id="metric-missing" class="text-2xl font-bold text-red-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Unexpected</p>
+                            <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Captured, on wrong day</p>
+                            <p id="metric-wrongday" class="text-2xl font-bold text-green-800 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Needs Review</p>
+                            <p id="metric-review" class="text-2xl font-bold text-purple-600 mt-1">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Completion</p>
+                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0%</p>
                         </div>
                     </div>
 
-                    <!-- Auditor Summary Tab -->
-                    <div id="perf-auditor-view" class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50">
-                        <div id="perf-auditor-container" class="space-y-6"></div>
+                    <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                        <div class="flex border-b border-slate-200 bg-slate-50 px-2 pt-2 gap-2 overflow-x-auto">
+                            <button onclick="ui.switchResultTab('tab-missing')" id="btn-tab-missing" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800 tab-active">Missing Captures</button>
+                            <button onclick="ui.switchResultTab('tab-unexpected')" id="btn-tab-unexpected" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Unexpected Captures</button>
+                            <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Captured, on wrong day</button>
+                            <button onclick="ui.switchResultTab('tab-review')" id="btn-tab-review" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Needs Review</button>
+                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Matched Captures</button>
+                            <div class="flex-1"></div>
+                            <button onclick="app.exportResults()" class="self-center mb-1 bg-slate-800 text-white px-3 py-1.5 text-xs rounded shadow hover:bg-slate-700 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export Results
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-auto p-0 relative">
+                            <div id="results-table-container" class="absolute inset-0"></div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Master Data View -->
+            <div id="view-master" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Master Data Configuration</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste the master call cycle containing expected stores and rules.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <p class="text-sm font-medium text-slate-700 mb-2">Paste Call Cycle Data</p>
+                    <p class="text-xs text-slate-500 mb-3">Open your Call Cycle Excel file, select the headers and all required rows, copy them, and paste them here. The system will automatically detect the column headers and process the data.</p>
+                    <textarea id="paste-master" class="w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: Region, Zone, EmployeeName, MasterWeeks, WeekNumber, DayNr, WeekDay, AS400StoreCode, StoreName, TBFSIR, RCLIR, LiptonIR..." style="min-height: 150px;"></textarea>
+                    
+                    <div class="mt-4 flex justify-between items-center">
+                        <div id="master-stats" class="text-sm text-slate-600 hidden bg-slate-50 p-3 rounded border border-slate-200 w-full max-w-2xl mr-4"></div>
+                        <div class="flex gap-3 ml-auto">
+                            <button onclick="app.clearMasterData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center whitespace-nowrap h-fit">
+                                Clear Master Data
+                            </button>
+                            <button onclick="app.confirmProcessMaster()" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center whitespace-nowrap h-fit">
+                                Process Call Cycle Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-[400px]">
+                    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-semibold text-slate-700">Current Master Data (<span id="master-count">0</span> rows)</h3>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="master-search" onkeyup="ui.filterMasterTable()" placeholder="Search stores/employees..." class="border border-slate-300 rounded px-2 py-1 text-sm w-48">
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">Region</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">EmployeeName</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">WeekNr</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">WeekDay</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">StoreCode</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">StoreName</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">TBFSIR</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">RCLIR</th>
+                                    <th class="px-4 py-3 text-center font-medium text-slate-500">LiptonIR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-tbody" class="divide-y divide-slate-200 bg-white">
+                                <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No master data loaded.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mappings View -->
+            <div id="view-mappings" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Employee Mappings</h2>
+                        <p class="text-slate-500 text-sm mt-1">Map IR System Login IDs to Master Data Employee Names.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden flex-1 min-h-[400px]">
+                    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <input type="text" id="new-login-id" placeholder="IR loginId (e.g. jdoe12)" class="border border-slate-300 rounded px-3 py-1.5 text-sm w-48">
+                            <input type="text" id="new-emp-name" placeholder="Master EmployeeName" class="border border-slate-300 rounded px-3 py-1.5 text-sm w-48">
+                            <button onclick="app.addMapping()" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700">Add Mapping</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500 w-1/3">IR System loginId</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500 w-1/2">Master Call Cycle EmployeeName</th>
+                                    <th class="px-4 py-3 text-right font-medium text-slate-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappings-tbody" class="divide-y divide-slate-200 bg-white">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div id="view-history" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Reconciliation History</h2>
+                        <p class="text-slate-500 text-sm mt-1">Review previous run summaries.</p>
+                    </div>
+                    <button onclick="app.clearHistory()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Clear History
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden flex-1 min-h-[400px]">
+                    <div class="flex-1 overflow-auto p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="history-container">
+                            <p class="text-slate-500 col-span-full">No history available yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <!-- Modals & Toasts -->
+    <!-- Modals & Overlays -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
             <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-2">Message</h3>
-            <p id="modal-msg" class="text-slate-600 mb-6 whitespace-pre-wrap text-sm leading-relaxed"></p>
+            <p id="modal-msg" class="text-slate-600 mb-6 whitespace-pre-wrap"></p>
             <div class="flex justify-end gap-3" id="modal-actions">
                 <button onclick="ui.closeModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg font-medium">OK</button>
             </div>
@@ -284,10 +396,20 @@
     
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/70 z-[100] hidden flex-col items-center justify-center backdrop-blur-sm text-white transition-opacity">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+        <span id="loading-text" class="font-medium text-lg tracking-tight">Synchronizing Data...</span>
+    </div>
+
+    <!-- MAIN APPLICATION LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, getDocs, addDoc, writeBatch, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /* ==========================================
+           FIREBASE CONFIGURATION
+        */
         const firebaseConfig = {
             apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
             authDomain: "call-cycle-tracker.firebaseapp.com",
@@ -296,97 +418,389 @@
             messagingSenderId: "697360208233",
             appId: "1:697360208233:web:d4a14da5b7acd9577b6df8"
         };
-        
-        let db = null;
-        try {
-            const appFirebase = initializeApp(firebaseConfig);
-            db = getFirestore(appFirebase);
-            const dbStatusEl = document.getElementById('db-status');
-            if (dbStatusEl) {
-                dbStatusEl.innerText = "Connected to Database";
-                dbStatusEl.className = "text-green-500 font-medium";
-            }
-        } catch (e) {
-            console.error("Firebase init failed:", e);
-            const dbStatusEl = document.getElementById('db-status');
-            if (dbStatusEl) {
-                dbStatusEl.innerText = "Connection Failed";
-                dbStatusEl.className = "text-red-500 font-medium";
-            }
-        }
+        const appId = 'call-cycle-tracker'; 
 
         const state = {
             currentProfile: null,
             masterData: [],
             mappings: {},
-            perfResults: null
+            currentActuals: [],
+            expectedPool: [],
+            lastResults: null,
+            historyData: [],
+            dbReady: false,
+            user: null
         };
 
+        let db, auth;
+
+        async function initFirebase() {
+            if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                ui.setStatus("Local Mode (Setup Firebase Keys)", "text-orange-500");
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                await signInAnonymously(auth);
+                state.user = auth.currentUser;
+                ui.setStatus("Connected to Database", "text-green-500");
+                state.dbReady = true;
+
+                const savedProfile = localStorage.getItem('callCycleProfile');
+                if (savedProfile) ui.loginWithProfile(savedProfile);
+            } catch (err) {
+                console.error("Firebase Init Error:", err);
+                ui.setStatus("DB Connection Failed", "text-red-500");
+            }
+        }
+
+        const MAPPINGS_PATH = `artifacts/${appId}/public/data/employee_mappings`;
+        const MASTER_PATH = `artifacts/${appId}/public/data/master_data_chunks`;
+        const HISTORY_PATH = `artifacts/${appId}/public/data/recon_history`;
+        const WORKSPACE_PATH = (profile) => `artifacts/${appId}/public/data/workspace_chunks_${profile}`;
+
+        async function loadWorkspaceState() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                const q = collection(db, WORKSPACE_PATH(state.currentProfile));
+                const snapshot = await getDocs(q);
+                let chunks = [];
+                let loadedClient = 'TBFSIR';
+                snapshot.forEach(doc => { const data = doc.data(); chunks.push(data); if(data.client) loadedClient = data.client; });
+                if (chunks.length > 0) {
+                    chunks.sort((a,b) => a.index - b.index);
+                    document.getElementById('paste-actuals').value = chunks.map(c => c.chunk).join('');
+                    const radio = document.querySelector(`input[name="client"][value="${loadedClient}"]`);
+                    if(radio) radio.checked = true;
+                } else document.getElementById('paste-actuals').value = '';
+            } catch (e) { console.error("Load Workspace:", e); }
+        }
+
+        async function saveWorkspaceState() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            const text = document.getElementById('paste-actuals').value || '';
+            const client = document.querySelector('input[name="client"]:checked').value;
+            try {
+                const colRef = collection(db, WORKSPACE_PATH(state.currentProfile));
+                const oldDocs = await getDocs(colRef);
+                const batch = writeBatch(db);
+                oldDocs.forEach(d => batch.delete(d.ref));
+                const chunkSize = 500000;
+                let chunkIndex = 0;
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    batch.set(doc(colRef, `chunk_${chunkIndex}`), { chunk: text.slice(i, i + chunkSize), client, index: chunkIndex });
+                    chunkIndex++;
+                }
+                if(text.length === 0) batch.set(doc(colRef, `chunk_0`), { chunk: '', client, index: 0 });
+                await batch.commit();
+            } catch (e) { console.error("Save Workspace:", e); }
+        }
+
+        async function loadMappings() {
+            if (!state.dbReady || !state.user) return;
+            try {
+                const docRef = doc(db, MAPPINGS_PATH, "current");
+                const snap = await getDoc(docRef);
+                if (snap.exists()) state.mappings = snap.data().map || {};
+                ui.renderMappings();
+            } catch (e) { console.error("Load Mappings:", e); }
+        }
+
+        async function saveMappings() {
+            if (!state.dbReady || !state.user) return;
+            try { await setDoc(doc(db, MAPPINGS_PATH, "current"), { map: state.mappings }); } 
+            catch (e) { console.error("Save Mappings:", e); }
+        }
+
+        async function loadMasterData() {
+            if (!state.dbReady || !state.user) return;
+            try {
+                const q = collection(db, MASTER_PATH);
+                const snapshot = await getDocs(q);
+                let loaded = [];
+                snapshot.forEach(doc => { if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk)); });
+                state.masterData = loaded;
+                ui.renderMasterTable();
+            } catch (e) { console.error("Load Master:", e); }
+        }
+
+        async function saveMasterData() {
+            if (!state.dbReady || !state.user) return;
+            if (state.currentProfile !== 'Admin') return ui.showToast("Admin access required.", "error");
+            try {
+                ui.showToast("Saving master data to cloud...", "info");
+                const colRef = collection(db, MASTER_PATH);
+                const oldDocs = await getDocs(colRef);
+                const batch = writeBatch(db);
+                oldDocs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+
+                const chunkSize = 500;
+                for (let i = 0; i < state.masterData.length; i += chunkSize) {
+                    await addDoc(collection(db, MASTER_PATH), { chunk: JSON.stringify(state.masterData.slice(i, i + chunkSize)) });
+                }
+                ui.showToast("Master data saved successfully.", "success");
+            } catch (e) {
+                console.error("Save Master Error:", e);
+                ui.showToast("Failed to save master data.", "error");
+                throw e;
+            }
+        }
+
+        async function saveHistory(summary, fullResults) {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                await addDoc(collection(db, HISTORY_PATH), {
+                    date: new Date().toISOString(), client: summary.client, profile: state.currentProfile, processedBy: state.currentProfile,
+                    expected: summary.expected, matched: summary.matched, missing: summary.missing, unexpected: summary.unexpected,
+                    wrongDay: summary.wrongDay, review: summary.review, userId: state.user.uid, fullResults: JSON.stringify(fullResults)
+                });
+                await loadHistory();
+            } catch (e) { console.error("Save History Error:", e); }
+        }
+
+        async function loadHistory() {
+            if (!state.dbReady || !state.user || !state.currentProfile) return;
+            try {
+                let q = collection(db, HISTORY_PATH);
+                if (state.currentProfile !== 'Admin') q = query(q, where("profile", "==", state.currentProfile));
+                const snapshot = await getDocs(q);
+                const history = [];
+                snapshot.forEach(d => history.push({id: d.id, ...d.data()}));
+                history.sort((a,b) => new Date(b.date) - new Date(a.date));
+                ui.renderHistory(history);
+            } catch (e) { console.error("Load History:", e); }
+        }
+
         const engine = {
-            parseTSV(text) {
-                if (!text) return [];
+            parseTSV(text, reqHeaders = []) {
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-                if (lines.length < 2) return [];
-                const headers = lines[0].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                if (lines.length < 2) throw new Error("Not enough data. Headers or rows are missing.");
+                const headers = lines[0].split('\t').map(h => h.trim());
+                const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
+                if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
                     const cols = lines[i].split('\t');
-                    let row = {}; 
-                    headers.forEach((h, idx) => { 
-                        let val = cols[idx] ? cols[idx].trim() : '';
-                        if (val.startsWith('"') && val.endsWith('"')) val = val.substring(1, val.length - 1);
-                        row[h] = val; 
-                    });
+                    let row = {}; headers.forEach((h, idx) => { row[h] = cols[idx] ? cols[idx].trim() : ''; });
                     data.push(row);
                 }
                 return data;
             },
+
+            normalizeCode(code) {
+                if (!code || code === '0' || code === '#N/A' || code === '-') return null;
+                const s = String(code).trim();
+                return s.length > 0 && s.toLowerCase() !== 'null' && s !== 'undefined' ? s : null;
+            },
+
+            normalizeText(str) { return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
+
             parseDate(dateStr) {
                 if (!dateStr) return null;
-                const isoMatch = dateStr.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})(?:[T\s].*)?$/);
-                if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                if (typeof dateStr === 'string') {
+                    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
+                    if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                }
                 let d = new Date(dateStr);
                 if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const parts = String(dateStr).split(/[\/\-]/);
+                if (parts.length === 3 && parts[2].length === 4) {
+                    d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    if (!isNaN(d.getTime())) return d;
+                }
                 return null;
             },
-            normalizeText(str) { 
-                return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; 
-            },
+
             getWeekOneMonday(year, month) {
                 let firstOfMonth = new Date(year, month, 1);
                 let dayOfWeek = firstOfMonth.getDay();
                 let jsDayToMondayZero = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
                 return new Date(year, month, 1 - jsDayToMondayZero);
             },
+
             getExpectedDate(year, month, weekNumber, weekDayStr) {
                 let w1Mon = this.getWeekOneMonday(year, month);
                 let dayOffset = { 'monday':0, 'tuesday':1, 'wednesday':2, 'thursday':3, 'friday':4, 'saturday':5, 'sunday':6 }[this.normalizeText(weekDayStr)] ?? -1;
                 if (dayOffset === -1) return null;
                 let targetDate = new Date(w1Mon);
                 targetDate.setDate(w1Mon.getDate() + ((weekNumber - 1) * 7) + dayOffset);
-                if (targetDate.getMonth() !== month) return null; 
                 return targetDate;
             },
+
             formatDate(dateObj) { return dateObj ? dateObj.toISOString().split('T')[0] : ''; },
+            getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
+
+            run(actuals, client, expectedPool) {
+                const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
+                let catHeader = 'category', loginHeader = 'loginId';
+                if(actuals.length > 0) {
+                    const keys = Object.keys(actuals[0]);
+                    const foundCat = keys.find(k => /category/i.test(k)); if(foundCat) catHeader = foundCat;
+                    const foundLog = keys.find(k => /loginid|userid/i.test(k)); if(foundLog) loginHeader = foundLog;
+                }
+
+                const actualVisitsByCode = new Map();
+                
+                actuals.forEach(act => {
+                    let codeVal = this.normalizeCode(act.storeCode || act.StoreCode);
+                    if (!codeVal) return;
+                    
+                    const parsedDate = this.parseDate(act.Date);
+                    const dateStr = parsedDate ? this.formatDate(parsedDate) : 'UnknownDate';
+                    const visitKey = `${codeVal}_${dateStr}`;
+                    
+                    if (!actualVisitsByCode.has(visitKey)) {
+                        actualVisitsByCode.set(visitKey, {
+                            storeCode: codeVal,
+                            storeName: act.storeName || act.StoreName || '',
+                            dateStr: dateStr,
+                            parsedDate: parsedDate,
+                            rawCount: 0,
+                            loginIds: new Set(),
+                            mappedEmps: new Set(),
+                            categories: new Set(),
+                            matchedToPlanned: false
+                        });
+                    }
+                    const v = actualVisitsByCode.get(visitKey);
+                    v.rawCount++;
+                    
+                    const login = act[loginHeader] || 'Unknown';
+                    v.loginIds.add(login);
+                    const mapped = state.mappings[login];
+                    if (mapped) v.mappedEmps.add(mapped);
+                    
+                    let cat = act[catHeader];
+                    if(cat) v.categories.add(cat.toString().trim().replace(/\s+/g, ' '));
+                });
+
+                expectedPool.forEach(exp => {
+                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
+                    exp._isValidCode = codeVal !== null;
+                    const expectedDateStr = exp._ExpectedDateStr;
+                    
+                    if(exp._isValidCode) {
+                        const exactMatchKey = `${codeVal}_${expectedDateStr}`;
+                        const exactMatch = actualVisitsByCode.get(exactMatchKey);
+                        if (exactMatch) {
+                            exp._matchedVisit = exactMatch;
+                            exp._matchType = 'EXACT';
+                            exactMatch.matchedToPlanned = true;
+                        }
+                    }
+                });
+                
+                expectedPool.forEach(exp => {
+                    if (exp._matchedVisit || !exp._isValidCode) return;
+                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
+                    const availableVisits = Array.from(actualVisitsByCode.values()).filter(v => v.storeCode === codeVal && !v.matchedToPlanned);
+                    if (availableVisits.length > 0) {
+                        const wrongDayMatch = availableVisits[0];
+                        exp._matchedVisit = wrongDayMatch;
+                        exp._matchType = 'WRONG_DAY';
+                        wrongDayMatch.matchedToPlanned = true;
+                    }
+                });
+
+                expectedPool.forEach(exp => {
+                    const expDateParsed = this.parseDate(exp._ExpectedDateStr);
+                    const monthStr = expDateParsed ? expDateParsed.toLocaleString('en-US', {month: 'long', year: 'numeric'}) : 'Unknown Month';
+                    
+                    const baseRec = {
+                        ReportingMonth: monthStr,
+                        WeekNumber: exp.WeekNumber || '-',
+                        DayNr: exp.DayNr || '-',
+                        PlannedDay: exp.WeekDay || '-',
+                        PlannedDate: exp._ExpectedDateStr || '-',
+                        storeCode: exp.AS400StoreCode || '',
+                        storeName: exp.StoreName || '',
+                        ExpectedEmployee: exp.EmployeeName || '',
+                        Client: client
+                    };
+
+                    if (!exp._isValidCode) {
+                        results.review.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'NEEDS REVIEW', DiscrepancyReason: `Master schedule missing valid AS400StoreCode.` });
+                    } else if (!exp._matchedVisit) {
+                        results.missing.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'MISSING CAPTURE', DiscrepancyReason: `Missed planned visit for Week ${exp.WeekNumber}, ${exp.WeekDay}.` });
+                    } else {
+                        const actV = exp._matchedVisit;
+                        const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
+                        const categoryCount = actV.categories.size > 0 ? actV.categories.size.toString() : '-';
+                        
+                        let isEmpMatch = false;
+                        for (const mapped of actV.mappedEmps) {
+                            if (this.normalizeText(exp.EmployeeName) === this.normalizeText(mapped)) { isEmpMatch = true; break; }
+                        }
+
+                        const rec = {
+                            ...baseRec,
+                            ActualDate: actV.dateStr,
+                            ActualDay: actDayName,
+                            CategoriesCaptured: categoryCount,
+                            loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
+                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', ')
+                        };
+
+                        if (exp._matchType === 'WRONG_DAY') {
+                            results.wrongDay.push({ ...rec, Status: 'CAPTURED, ON WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
+                        } else if (actV.mappedEmps.size === 0) {
+                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping unknown).' });
+                        } else if (!isEmpMatch) {
+                            results.wrongDay.push({ ...rec, Status: 'SCHEDULE DISCREPANCY', DiscrepancyReason: `Captured on schedule, but by wrong employee.` });
+                        } else {
+                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Captured exactly as scheduled.' });
+                        }
+                    }
+                });
+                
+                actualVisitsByCode.forEach(v => {
+                    if (!v.matchedToPlanned) {
+                        const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
+                        const categoryCount = v.categories.size > 0 ? v.categories.size.toString() : '-';
+
+                        const actRec = {
+                            ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
+                            storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
+                            ActualDate: v.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
+                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client
+                        };
+                        results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
+                    }
+                });
+
+                return results;
+            }
         };
 
         window.ui = {
+            currentTab: 'tab-missing',
+            tablePage: 1,
+            tablePageSize: 50,
+            
             handleProfileChange() {
                 const sel = document.getElementById('profile-select').value;
                 const pwd = document.getElementById('password-group');
                 if (sel === 'Admin') pwd.classList.remove('hidden');
                 else pwd.classList.add('hidden');
             },
+
             login() {
                 const sel = document.getElementById('profile-select').value;
-                if (!sel) return this.showToast("Please select a profile.", "error");
+                if (!sel) return this.showToast("Select a profile to log in.", "error");
+
                 if (sel === 'Admin' && document.getElementById('admin-password').value !== 'Cycle1') {
                     return this.showToast("Incorrect Admin password.", "error");
                 }
                 this.loginWithProfile(sel);
             },
-            loginWithProfile(profileName) {
+
+            async loginWithProfile(profileName) {
                 state.currentProfile = profileName;
+                localStorage.setItem('callCycleProfile', profileName);
+                
                 document.getElementById('current-user-name').innerText = profileName;
                 document.getElementById('profile-avatar').innerText = profileName.charAt(0).toUpperCase();
                 document.getElementById('login-view').classList.add('hidden');
@@ -394,453 +808,392 @@
                 const isAdmin = profileName === 'Admin';
                 document.getElementById('nav-master').style.display = isAdmin ? 'flex' : 'none';
                 document.getElementById('nav-mappings').style.display = isAdmin ? 'flex' : 'none';
-                document.getElementById('nav-performance').style.display = isAdmin ? 'flex' : 'none';
-                
-                this.switchView(isAdmin ? 'view-performance' : 'view-reconcile');
-                this.syncDataFromFirestore();
-            },
-            logout() { 
-                document.getElementById('login-view').classList.remove('hidden'); 
-            },
-            switchView(viewId) {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
-                const target = document.getElementById(viewId);
-                if (target) target.classList.remove('hidden-view');
+                document.getElementById('mobile-nav-master').style.display = isAdmin ? 'block' : 'none';
+                document.getElementById('mobile-nav-mappings').style.display = isAdmin ? 'block' : 'none';
 
+                this.switchView('view-reconcile');
+
+                if (state.dbReady) {
+                    document.getElementById('loading-overlay').classList.replace('hidden', 'flex');
+                    await loadMasterData();
+                    await loadMappings();
+                    await loadHistory();
+                    await loadWorkspaceState();
+                    document.getElementById('loading-overlay').classList.replace('flex', 'hidden');
+                }
+            },
+
+            logout() {
+                state.currentProfile = null;
+                localStorage.removeItem('callCycleProfile');
+                document.getElementById('admin-password').value = '';
+                document.getElementById('profile-select').value = '';
+                this.handleProfileChange();
+                document.getElementById('login-view').classList.remove('hidden');
+            },
+
+            resetReconView() {
+                document.getElementById('recon-results').classList.add('hidden-view');
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                document.getElementById('history-banner').classList.add('hidden');
+                document.getElementById('recon-setup').classList.remove('hidden');
+            },
+
+            closeHistoryView() { this.resetReconView(); },
+
+            switchView(viewId) {
+                if (state.currentProfile !== 'Admin' && (viewId === 'view-master' || viewId === 'view-mappings')) {
+                    return this.showToast("Admin access required.", "error");
+                }
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
+                document.getElementById(viewId).classList.remove('hidden-view');
+                
                 document.querySelectorAll('.nav-btn').forEach(btn => {
                     btn.classList.remove('bg-blue-600', 'text-white');
-                    btn.classList.add('hover:bg-slate-800', 'text-slate-300');
+                    btn.classList.add('hover:bg-slate-800');
                 });
-                const activeNav = document.getElementById(viewId.replace('view-', 'nav-'));
-                if (activeNav) {
-                    activeNav.classList.remove('hover:bg-slate-800', 'text-slate-300');
-                    activeNav.classList.add('bg-blue-600', 'text-white');
-                }
+                const activeBtn = document.getElementById('nav-' + viewId.replace('view-',''));
+                if (activeBtn) activeBtn.classList.add('bg-blue-600', 'text-white');
             },
-            switchPerfTab(tab) {
-                const audView = document.getElementById('perf-auditor-view');
-                const cliView = document.getElementById('perf-client-view');
-                const tabAud = document.getElementById('tab-perf-auditor');
-                const tabCli = document.getElementById('tab-perf-client');
-                
-                if (tab === 'auditor') {
-                    audView.classList.remove('hidden');
-                    audView.classList.add('flex');
-                    cliView.classList.add('hidden');
-                    cliView.classList.remove('flex');
-                    tabAud.className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
-                    tabCli.className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
-                } else {
-                    audView.classList.add('hidden');
-                    audView.classList.remove('flex');
-                    cliView.classList.remove('hidden');
-                    cliView.classList.add('flex');
-                    tabCli.className = "pb-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
-                    tabAud.className = "pb-2 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent";
-                }
+            
+            setStatus(msg, colorClass) {
+                const el = document.getElementById('db-status');
+                el.className = `text-xs font-medium ${colorClass}`;
+                el.innerText = msg;
             },
+
             showModal(title, msg) {
                 document.getElementById('modal-title').innerText = title;
                 document.getElementById('modal-msg').innerText = msg;
+                document.getElementById('modal-actions').innerHTML = `<button onclick="ui.closeModal()" class="bg-slate-800 text-white px-5 py-2 rounded">OK</button>`;
                 document.getElementById('modal-overlay').classList.remove('hidden');
             },
+
+            showConfirm(title, msg, confirmText, onConfirm) {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-msg').innerText = msg;
+                document.getElementById('modal-actions').innerHTML = `
+                    <button onclick="ui.closeModal()" class="px-4 py-2 border rounded">Cancel</button>
+                    <button id="modal-confirm-btn" class="bg-red-600 text-white px-5 py-2 rounded">${confirmText}</button>
+                `;
+                document.getElementById('modal-confirm-btn').onclick = () => { ui.closeModal(); onConfirm(); };
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
             closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); },
+
             showToast(msg, type='info') {
                 const c = document.getElementById('toast-container');
                 const t = document.createElement('div');
-                const colors = type === 'error' ? 'bg-red-500' : 'bg-slate-800';
+                const colors = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-slate-800';
                 t.className = `${colors} text-white px-4 py-3 rounded shadow text-sm font-medium toast-enter`;
                 t.innerText = msg;
                 c.appendChild(t);
                 setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
             },
-            async syncDataFromFirestore() {
-                if (!db) return;
-                try {
-                    const masterDoc = await getDoc(doc(db, "tracker_config", "master_data"));
-                    if (masterDoc.exists() && masterDoc.data().records) {
-                        state.masterData = masterDoc.data().records;
-                    }
-                    const mapDoc = await getDoc(doc(db, "tracker_config", "employee_mappings"));
-                    if (mapDoc.exists() && mapDoc.data().mappings) {
-                        state.mappings = mapDoc.data().mappings;
-                    }
-                } catch (e) {
-                    console.warn("Firestore sync warning:", e);
-                }
+
+            renderMasterTable() {
+                document.getElementById('master-count').innerText = state.masterData.length;
+                this.filterMasterTable();
+            },
+
+            filterMasterTable() {
+                const t = document.getElementById('master-search')?.value.toLowerCase() || '';
+                const f = state.masterData.filter(r => 
+                    (r.StoreName || '').toLowerCase().includes(t) || (r.AS400StoreCode || '').toLowerCase().includes(t)
+                );
+                document.getElementById('master-tbody').innerHTML = f.slice(0, 100).map(r => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2">${r.Region || ''}</td>
+                        <td class="px-4 py-2">${r.EmployeeName || ''}</td>
+                        <td class="px-4 py-2">${r.WeekNumber || ''}</td>
+                        <td class="px-4 py-2">${r.WeekDay || ''}</td>
+                        <td class="px-4 py-2 font-mono text-slate-500">${r.AS400StoreCode || ''}</td>
+                        <td class="px-4 py-2 font-medium">${r.StoreName || ''}</td>
+                        <td class="px-4 py-2 text-center">${r.TBFSIR == 1 ? '✅' : '-'}</td>
+                        <td class="px-4 py-2 text-center">${r.RCLIR == 1 ? '✅' : '-'}</td>
+                        <td class="px-4 py-2 text-center">${r.LiptonIR == 1 ? '✅' : '-'}</td>
+                    </tr>
+                `).join('');
+            },
+
+            renderMappings() {
+                document.getElementById('mappings-tbody').innerHTML = Object.entries(state.mappings).map(([logId, emp]) => `
+                    <tr><td class="px-4 py-2 font-mono">logId</td><tdclass="px-4py-2font-medium">{emp}</td>
+                    <td class="px-4 py-2 text-right"><button onclick="app.removeMapping('${logId}')" class="text-red-500 text-xs">Remove</button></td></tr>
+                `).join('') || `<tr><td colspan="3" class="p-4 text-center">No mappings.</td></tr>`;
+            },
+
+            switchResultTab(tabId) {
+                this.currentTab = tabId; this.tablePage = 1;
+                ['tab-missing', 'tab-unexpected', 'tab-wrongday', 'tab-review', 'tab-matched'].forEach(id => {
+                    const btn = document.getElementById('btn-' + id);
+                    if(btn) { id === tabId ? btn.classList.add('tab-active') : btn.classList.remove('tab-active'); }
+                });
+                this.renderResultsTable();
+            },
+
+            renderResultsTable() {
+                if(!state.lastResults) return;
+                const c = document.getElementById('results-table-container');
+                let data = state.lastResults[{'tab-missing':'missing', 'tab-unexpected':'unexpected', 'tab-wrongday':'wrongDay', 'tab-review':'review', 'tab-matched':'matched'}[this.currentTab]] || [];
+
+                if(data.length === 0) { c.innerHTML = `<div class="p-8 text-center text-slate-500">No records found.</div>`; return; }
+
+                const size = this.tablePageSize === 'All' ? data.length : parseInt(this.tablePageSize);
+                const start = (this.tablePage - 1) * size;
+                const end = Math.min(start + size, data.length);
+                const totalPages = Math.ceil(data.length / size) || 1;
+
+                let html = `<div class="flex flex-col h-full absolute inset-0"><div class="flex-1 overflow-auto"><table class="min-w-full divide-y text-sm"><thead class="bg-slate-100 sticky top-0"><tr>
+                    <th class="p-2 text-left">Week</th><th class="p-2 text-left">Planned Date</th><th class="p-2 text-left">Store Code</th>
+                    <th class="p-2 text-left">Store Name</th><th class="p-2 text-left">Act. Date</th><th class="p-2 text-left">LoginID</th>
+                    <th class="p-2 text-center">Categories</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Explanation</th>
+                </tr></thead><tbody class="bg-white">`;
+                
+                data.slice(start, end).forEach(r => {
+                    let statusColorClass = 'text-slate-800';
+                    if (r.Status === 'CAPTURED, ON WRONG DAY') statusColorClass = 'text-green-800';
+                    else if (r.Status === 'MISSING CAPTURE') statusColorClass = 'text-red-600';
+                    else if (r.Status === 'MATCHED') statusColorClass = 'text-green-600';
+                    else if (r.Status === 'UNEXPECTED CAPTURE') statusColorClass = 'text-orange-500';
+                    else if (r.Status === 'NEEDS REVIEW') statusColorClass = 'text-purple-600';
+
+                    html += `<tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2 text-xs font-medium">Wk ${r.WeekNumber} - ${r.PlannedDay}</td>
+                        <td class="p-2 text-xs font-mono">${r.PlannedDate}</td>
+                        <td class="p-2 text-xs font-mono font-bold">${r.storeCode}</td>
+                        <td class="p-2 text-xs font-medium">${r.storeName}</td>
+                        <td class="p-2 text-xs font-mono">r.ActualDate({r.ActualDay})</td>
+                        <td class="p-2 text-xs font-mono text-blue-700">${r.loginId}</td>
+                        <td class="p-2 text-xs text-center font-bold">${r.CategoriesCaptured}</td>
+                        <td class="p-2 text-xs font-bold statusColorClass">{r.Status}</td>
+                        <td class="p-2 text-xs text-slate-600">${r.DiscrepancyReason}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div><div class="p-2 bg-slate-50 flex justify-between items-center text-sm">
+                    <div>Showing ${start+1} to ${end} of ${data.length}</div>
+                    <div class="flex items-center gap-2">
+                        <select onchange="ui.tablePageSize=this.value; ui.renderResultsTable()" class="border rounded p-1">
+                            <option value="50" ${size==50?'selected':''}>50</option>
+                            <option value="500" ${size==500?'selected':''}>500</option>
+                            <option value="All" ${this.tablePageSize=='All'?'selected':''}>All</option>
+                        </select>
+                        <button onclick="ui.tablePage--; ui.renderResultsTable()" ${this.tablePage===1?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Prev</button>
+                        <span>this.tablePage/{totalPages}</span>
+                        <button onclick="ui.tablePage++; ui.renderResultsTable()" ${this.tablePage===totalPages?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Next</button>
+                    </div>
+                </div></div>`;
+                c.innerHTML = html;
+            },
+
+            renderHistory(hist) {
+                state.historyData = hist;
+                const c = document.getElementById('history-container');
+                if(!hist.length) return c.innerHTML = `<p class="col-span-full">No history available in your workspace.</p>`;
+                c.innerHTML = hist.map(h => {
+                    const d = new Date(h.date);
+                    return `<div onclick="app.openHistoryRun('${h.id}')" class="border p-4 rounded-lg shadow-sm hover:shadow-md cursor-pointer bg-white">
+                        <div class="flex justify-between text-xs mb-2"><span class="font-bold bg-blue-100 px-2 rounded">h.client</span><span>{d.toLocaleString()}</span></div>
+                        <div class="grid grid-cols-2 text-sm mt-2">
+                            <div>Expected: <span class="font-bold">${h.expected}</span></div>
+                            <div class="text-green-600">Matched: <span class="font-bold">${h.matched}</span></div>
+                            <div class="text-red-600">Missing: <span class="font-bold">${h.missing}</span></div>
+                            <div class="text-orange-500">Unexpected: <span class="font-bold">${h.unexpected}</span></div>
+                        </div>
+                    </div>`;
+                }).join('');
             }
         };
 
         window.app = {
-            toggleAllLiptonRetailers(check) {
-                document.querySelectorAll('.perf-lipton-cb').forEach(cb => cb.checked = check);
-                this.updateLiptonDropdownText();
+            clearWorkspaceData() {
+                ui.showConfirm("Clear Uploaded Report?", "This removes the pasted report from your workspace.", "Clear Report", async () => {
+                    document.getElementById('paste-actuals').value = ''; state.currentActuals = []; ui.resetReconView(); await saveWorkspaceState();
+                });
             },
-            updateLiptonDropdownText() {
-                const checked = document.querySelectorAll('.perf-lipton-cb:checked').length;
-                document.getElementById('lipton-dropdown-text').innerText = checked === 6 ? "All Retailers Selected" : `${checked} Retailers Selected`;
-            },
-            classifyRetailer(storeName) {
-                if (!storeName) return "Unknown";
-                const name = engine.normalizeText(storeName);
-                if (/\bsuperspar\b/.test(name) || /\bsuper spar\b/.test(name)) return "SUPERSPAR";
-                if (/\bspar\b/.test(name)) return "SPAR";
-                if (/\bcheckers\b/.test(name)) return "Checkers";
-                if (/\bshoprite\b/.test(name)) return "Shoprite";
-                if (/\bmakro\b/.test(name)) return "Makro";
-                if (/\bpick\s*n\s*pay\b/.test(name) || /\bpnp\b/.test(name)) return "Pick n Pay";
-                return "Unknown";
-            },
-            
-            executePerformance() {
-                if (!state.masterData || state.masterData.length === 0) {
-                    return ui.showModal("Master Data Required", "Please load Master Data first or verify database connection.");
-                }
+
+            openHistoryRun(id) {
+                const run = state.historyData.find(h => h.id === id);
+                if (!run) return;
+                state.lastResults = JSON.parse(run.fullResults);
+                document.getElementById('history-banner-details').innerText = `${run.client} - ${new Date(run.date).toLocaleString()}`;
+                document.getElementById('history-banner').classList.remove('hidden');
+                document.getElementById('recon-setup').classList.add('hidden');
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
                 
-                const tbfsTxt = (document.getElementById('perf-paste-tbfs')?.value || '').trim();
-                const rclTxt = (document.getElementById('perf-paste-rcl')?.value || '').trim();
-                const liptonTxt = (document.getElementById('perf-paste-lipton')?.value || '').trim();
-                
-                if (!tbfsTxt && !rclTxt && !liptonTxt) {
-                    return ui.showModal("Input Required", "Please paste at least one IR Report (TBFS, RCL, or Lipton).");
-                }
+                const r = state.lastResults;
+                document.getElementById('metric-expected').innerText = run.expected;
+                document.getElementById('metric-matched').innerText = r.matched.length;
+                document.getElementById('metric-missing').innerText = r.missing.length;
+                document.getElementById('metric-unexpected').innerText = r.unexpected.length;
+                document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
+                document.getElementById('metric-review').innerText = r.review.length;
+                document.getElementById('metric-completion').innerText = run.expected > 0 ? Math.round(((r.matched.length + r.wrongDay.length + r.unexpected.length) / run.expected)*100) + '%' : '0%';
 
-                document.getElementById('perf-status-msg').innerText = "Processing...";
-                
-                try {
-                    const tbfsActuals = engine.parseTSV(tbfsTxt);
-                    const rclActuals = engine.parseTSV(rclTxt);
-                    const liptonActuals = engine.parseTSV(liptonTxt);
-
-                    const getExactVal = (row, matchers) => {
-                        const key = Object.keys(row).find(k => {
-                            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-                            return matchers.includes(clean);
-                        });
-                        return key ? row[key] : null;
-                    };
-
-                    let engineYear = null, engineMonth = null, monthName = "Unknown";
-                    const findMonth = (arr) => {
-                        for (let act of arr) {
-                            const rawDate = getExactVal(act, ['date']);
-                            const d = engine.parseDate(rawDate);
-                            if (d) return { y: d.getFullYear(), m: d.getMonth(), name: d.toLocaleString('en-US', {month:'long', year:'numeric'}) };
-                        }
-                        return null;
-                    };
-                    
-                    const resM = findMonth(tbfsActuals) || findMonth(rclActuals) || findMonth(liptonActuals);
-                    if (!resM) throw new Error("Could not detect any valid dates in the uploaded reports to establish a reporting month.");
-                    engineYear = resM.y; 
-                    engineMonth = resM.m; 
-                    monthName = resM.name;
-                    
-                    const periodBanner = document.getElementById('perf-reporting-period-banner');
-                    if (periodBanner) {
-                        periodBanner.innerText = `Reporting Period: 1 ${monthName.split(' ')[0]} ${engineYear} – ${new Date(engineYear, engineMonth + 1, 0).getDate()} ${monthName}`;
-                    }
-
-                    const selectedLiptonRetailers = Array.from(document.querySelectorAll('.perf-lipton-cb:checked')).map(cb => cb.value);
-
-                    const plannedStoresMap = {}; 
-                    const globalClientStores = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
-                    const validPlannedKeys = new Set();
-                    const exportDetails = { planned: [], outstanding: [], unexpected: [], review: [] };
-
-                    state.masterData.forEach(m => {
-                        const d = engine.getExpectedDate(engineYear, engineMonth, Number(m.WeekNumber), m.WeekDay);
-                        if (!d) return; 
-
-                        const rawCode = m.AS400StoreCode ? String(m.AS400StoreCode).trim() : null;
-                        if (!rawCode) return;
-                        
-                        const empName = engine.normalizeText(m.EmployeeName);
-                        if (!plannedStoresMap[empName]) plannedStoresMap[empName] = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
-
-                        const pushPlan = (clientName, flag) => {
-                            if (String(flag) === '1' || String(flag).toLowerCase() === 'true') {
-                                if (clientName === 'Lipton') {
-                                    const ret = this.classifyRetailer(m.StoreName);
-                                    if (!selectedLiptonRetailers.includes(ret) && ret !== "Unknown") return;
-                                }
-                                plannedStoresMap[empName][clientName].add(rawCode);
-                                globalClientStores[clientName].add(rawCode);
-                                
-                                const uniqueKey = `${clientName}_${empName}_${rawCode}`;
-                                if (!validPlannedKeys.has(uniqueKey)) {
-                                    validPlannedKeys.add(uniqueKey);
-                                    exportDetails.planned.push({
-                                        Client: clientName, ExpectedEmployee: m.EmployeeName, storeCode: rawCode, 
-                                        storeName: m.StoreName, WeekNumber: m.WeekNumber, PlannedDay: m.WeekDay, 
-                                        PlannedDate: engine.formatDate(d), Status: 'PLANNED'
-                                    });
-                                }
-                            }
-                        };
-                        pushPlan('TBFS', m.TBFSIR); 
-                        pushPlan('RCL', m.RCLIR); 
-                        pushPlan('Lipton', m.LiptonIR);
-                    });
-
-                    const capturedStoresMap = {}; 
-                    const unexpectedStoresMap = {}; 
-
-                    const processActuals = (arr, clientName) => {
-                        arr.forEach(act => {
-                            const rawDate = getExactVal(act, ['date']);
-                            const date = engine.parseDate(rawDate);
-                            if (!date || date.getFullYear() !== engineYear || date.getMonth() !== engineMonth) return;
-
-                            // EXACT MATCH: Match against AS400StoreCode (storecode)
-                            const rawCode = getExactVal(act, ['storecode']);
-                            const codeVal = rawCode ? String(rawCode).trim() : null;
-                            if (!codeVal) return;
-
-                            let rawLogin = getExactVal(act, ['loginid']);
-                            if (!rawLogin) rawLogin = getExactVal(act, ['userid', 'capturer', 'username']);
-                            const mappedEmp = rawLogin ? (state.mappings[rawLogin] || state.mappings[rawLogin.trim()]) : null;
-                            
-                            if (!mappedEmp) {
-                                exportDetails.review.push({
-                                    Client: clientName, ExpectedEmployee: 'Unknown Map', storeCode: codeVal, 
-                                    storeName: act.storeName || '', WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'NEEDS REVIEW (UNMAPPED)'
-                                });
-                                return;
-                            }
-                            const normEmp = engine.normalizeText(mappedEmp);
-
-                            if (!capturedStoresMap[normEmp]) capturedStoresMap[normEmp] = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
-                            if (!unexpectedStoresMap[normEmp]) unexpectedStoresMap[normEmp] = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
-
-                            const audPlan = plannedStoresMap[normEmp]?.[clientName];
-                            
-                            if (audPlan && audPlan.has(codeVal)) {
-                                capturedStoresMap[normEmp][clientName].add(codeVal);
-                            } else {
-                                if (globalClientStores[clientName].has(codeVal)) {
-                                    exportDetails.review.push({
-                                        Client: clientName, ExpectedEmployee: mappedEmp, storeCode: codeVal, 
-                                        storeName: act.storeName || '', WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'WRONG AUDITOR'
-                                    });
-                                } else {
-                                    unexpectedStoresMap[normEmp][clientName].add(codeVal);
-                                    exportDetails.unexpected.push({
-                                        Client: clientName, ExpectedEmployee: mappedEmp, storeCode: codeVal, 
-                                        storeName: act.storeName || '', WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'UNEXPECTED'
-                                    });
-                                }
-                            }
-                        });
-                    };
-
-                    processActuals(tbfsActuals, 'TBFS');
-                    processActuals(rclActuals, 'RCL');
-                    processActuals(liptonActuals, 'Lipton');
-
-                    const auditorSummaryHtml = [];
-                    const clientData = { TBFS: { p:0, c:0, u:0 }, RCL: { p:0, c:0, u:0 }, Lipton: { p:0, c:0, u:0 } };
-                    
-                    let uniquePhysicalStores = new Set();
-                    let totalAuditorAssignments = 0;
-
-                    const auditors = Object.keys(plannedStoresMap).sort();
-                    auditors.forEach(aud => {
-                        const originalName = Object.keys(state.mappings).find(k => engine.normalizeText(state.mappings[k]) === aud) ? state.mappings[Object.keys(state.mappings).find(k => engine.normalizeText(state.mappings[k]) === aud)] : aud;
-                        
-                        let html = `<div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
-                            <h3 class="font-bold text-slate-800 p-4 border-b border-slate-200 uppercase bg-slate-50">${originalName}</h3>
-                            <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm text-left"><tbody class="divide-y divide-slate-100">`;
-                        
-                        let totalP = 0, totalC = 0, totalU = 0;
-
-                        ['TBFS', 'Lipton', 'RCL'].forEach(client => {
-                            const pSet = plannedStoresMap[aud][client];
-                            const cSet = capturedStoresMap[aud]?.[client] || new Set();
-                            const uSet = unexpectedStoresMap[aud]?.[client] || new Set();
-                            
-                            const p = pSet.size;
-                            const c = cSet.size;
-                            const u = uSet.size;
-                            const out = p - c;
-                            const comp = p > 0 ? Math.round((c / p) * 100) : 0;
-                            const activity = c + u;
-
-                            totalP += p; totalC += c; totalU += u;
-                            
-                            clientData[client].p += p;
-                            clientData[client].c += c;
-                            clientData[client].u += u;
-
-                            pSet.forEach(code => {
-                                uniquePhysicalStores.add(`${client}_${code}`);
-                                totalAuditorAssignments++;
-                                if (!cSet.has(code)) {
-                                    exportDetails.outstanding.push({ Client: client, ExpectedEmployee: originalName, storeCode: code, storeName: '', WeekNumber: '-', PlannedDay: '-', PlannedDate: '-', Status: 'OUTSTANDING' });
-                                }
-                            });
-
-                            html += `<tr>
-                                <td class="p-4 font-medium text-slate-700 w-1/6">${client}</td>
-                                <td class="p-4 text-slate-600 text-right w-1/6">${p}</td>
-                                <td class="p-4 font-bold text-green-600 text-right w-1/6">${c}</td>
-                                <td class="p-4 font-bold text-orange-500 text-right w-1/6">${u}</td>
-                                <td class="p-4 font-bold text-purple-600 text-right w-1/6">${activity}</td>
-                                <td class="p-4 font-bold text-red-500 text-right w-1/6">${out}</td>
-                                <td class="p-4 font-bold text-blue-600 text-right w-1/6">${comp}%</td>
-                            </tr>`;
-                        });
-                        
-                        const tOut = totalP - totalC;
-                        const tComp = totalP > 0 ? Math.round((totalC / totalP) * 100) : 0;
-                        const tAct = totalC + totalU;
-
-                        html += `<tr class="bg-slate-50 border-t-2 border-slate-200">
-                            <td class="p-4 font-black text-slate-800">AUDITOR TOTAL</td>
-                            <td class="p-4 font-bold text-slate-800 text-right">${totalP}</td>
-                            <td class="p-4 font-bold text-green-700 text-right">${totalC}</td>
-                            <td class="p-4 font-bold text-orange-600 text-right">${totalU}</td>
-                            <td class="p-4 font-bold text-purple-700 text-right">${tAct}</td>
-                            <td class="p-4 font-bold text-red-600 text-right">${tOut}</td>
-                            <td class="p-4 font-black text-blue-700 text-right">${tComp}%</td>
-                        </tr></tbody></table></div></div>`;
-                        auditorSummaryHtml.push(html);
-                    });
-                    
-                    const audContainer = document.getElementById('perf-auditor-container');
-                    if (audContainer) {
-                        audContainer.innerHTML = auditorSummaryHtml.join('');
-                    }
-
-                    let cHtml = '';
-                    let gP = 0, gC = 0, gU = 0;
-                    ['RCL', 'Lipton', 'TBFS'].forEach(client => {
-                        const d = clientData[client];
-                        const out = d.p - d.c;
-                        const comp = d.p > 0 ? Math.round((d.c / d.p) * 100) : 0;
-                        const act = d.c + d.u;
-                        gP += d.p; gC += d.c; gU += d.u;
-                        let cName = client;
-                        if (client === 'Lipton' && selectedLiptonRetailers.length < 6) cName = "Lipton <span class='text-xs text-slate-400 font-normal'>(Filtered)</span>";
-                        
-                        cHtml += `<tr>
-                            <td class="p-4 font-medium text-slate-700">${cName}</td>
-                            <td class="p-4 text-slate-600 text-right">${d.p}</td>
-                            <td class="p-4 font-bold text-green-600 text-right">${d.c}</td>
-                            <td class="p-4 font-bold text-orange-500 text-right">${d.u}</td>
-                            <td class="p-4 font-bold text-purple-600 text-right">${act}</td>
-                            <td class="p-4 font-bold text-red-500 text-right">${out}</td>
-                            <td class="p-4 font-bold text-blue-600 text-right">${comp}%</td>
-                        </tr>`;
-                    });
-                    
-                    const gOut = gP - gC;
-                    const gComp = gP > 0 ? Math.round((gC / gP) * 100) : 0;
-                    const gAct = gC + gU;
-                    cHtml += `<tr class="bg-slate-50 border-t-2 border-slate-200">
-                        <td class="p-4 font-black text-slate-800">ALL CLIENTS TOTAL</td>
-                        <td class="p-4 font-bold text-slate-800 text-right">${gP}</td>
-                        <td class="p-4 font-bold text-green-700 text-right">${gC}</td>
-                        <td class="p-4 font-bold text-orange-600 text-right">${gU}</td>
-                        <td class="p-4 font-bold text-purple-700 text-right">${gAct}</td>
-                        <td class="p-4 font-bold text-red-600 text-right">${gOut}</td>
-                        <td class="p-4 font-black text-blue-700 text-right">${gComp}%</td>
-                    </tr>`;
-                    
-                    const clientTbody = document.getElementById('perf-client-tbody');
-                    if (clientTbody) {
-                        clientTbody.innerHTML = cHtml;
-                    }
-
-                    const diff = totalAuditorAssignments - uniquePhysicalStores.size;
-                    const valMsg = `<strong>Reconciliation Validation:</strong> The Client Totals table correctly reflects <strong>${totalAuditorAssignments}</strong> planned auditor assignments across <strong>${uniquePhysicalStores.size}</strong> unique physical stores. ${diff > 0 ? `The difference of <strong>${diff}</strong> store(s) occurs because some store codes are legitimately assigned to multiple auditors.` : ''}`;
-                    const valBanner = document.getElementById('client-recon-validation-banner');
-                    if (valBanner) {
-                        valBanner.innerHTML = valMsg;
-                    }
-
-                    document.getElementById('perf-status-msg').innerText = "Performance calculated successfully.";
-                    document.getElementById('perf-results').classList.remove('hidden');
-
-                    state.perfResults = { trackingSets: { validPlannedKeys }, details: exportDetails };
-
-                } catch (e) {
-                    console.error("Calculation failure:", e);
-                    document.getElementById('perf-status-msg').innerText = "Processing failed.";
-                    ui.showModal("Error calculating performance", e.message);
-                }
+                ui.switchView('view-reconcile');
+                document.getElementById('recon-results').classList.remove('hidden-view');
+                ui.switchResultTab('tab-missing');
             },
 
-            exportPerformance() {
-                if (!state.perfResults || !state.perfResults.details) return;
+            clearHistory() {
+                ui.showConfirm("Clear History?", "Permanently delete all reconciliation history in your workspace?", "Delete History", async () => {
+                    let q = collection(db, HISTORY_PATH);
+                    if (state.currentProfile !== 'Admin') q = query(q, where("profile", "==", state.currentProfile));
+                    const snapshot = await getDocs(q);
+                    const batch = writeBatch(db);
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    ui.renderHistory([]); ui.showToast("History cleared.", "success");
+                });
+            },
 
-                ui.showToast("Generating Excel report... Please wait.", "info");
-                const btn = document.getElementById('btn-export-perf');
-                if (btn) { btn.disabled = true; btn.innerText = "Generating..."; }
-
-                setTimeout(() => {
+            clearMasterData() {
+                ui.showConfirm("Clear Master Data?", "This will permanently delete the active master call cycle from the system for all users.", "Clear Data", async () => {
+                    if (!state.dbReady || !state.user || state.currentProfile !== 'Admin') return ui.showToast("Admin access required.", "error");
+                    
+                    ui.showToast("Clearing master data...", "info");
                     try {
-                        const wb = XLSX.utils.book_new();
-                        const details = state.perfResults.details;
+                        const colRef = collection(db, MASTER_PATH);
+                        const snapshot = await getDocs(colRef);
+                        const batch = writeBatch(db);
+                        snapshot.forEach(doc => batch.delete(doc.ref));
+                        await batch.commit();
                         
-                        const audHeaders = ["Auditor", "Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"];
-                        let audData = [audHeaders];
-                        document.querySelectorAll('#perf-auditor-container h3').forEach((h3) => {
-                            const currentAud = h3.innerText;
-                            const table = h3.nextElementSibling.querySelector('table');
-                            const rows = table.querySelectorAll('tbody tr:not(.bg-slate-50)');
-                            rows.forEach(r => {
-                                const cells = r.querySelectorAll('td');
-                                audData.push([currentAud, cells[0].innerText, parseInt(cells[1].innerText), parseInt(cells[2].innerText), parseInt(cells[3].innerText), parseInt(cells[4].innerText), parseInt(cells[5].innerText), cells[6].innerText]);
-                            });
-                        });
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(audData), "1. Auditor Summary");
-
-                        const cliHeaders = ["Client", "Planned Stores", "Captured Stores", "Unexpected Stores", "Total Capture Activity", "Outstanding Stores", "Completion %"];
-                        let cliData = [cliHeaders];
-                        document.querySelectorAll('#perf-client-tbody tr:not(.bg-slate-50)').forEach(r => {
-                            const cells = r.querySelectorAll('td');
-                            cliData.push([cells[0].innerText, parseInt(cells[1].innerText), parseInt(cells[2].innerText), parseInt(cells[3].innerText), parseInt(cells[4].innerText), parseInt(cells[5].innerText), cells[6].innerText]);
-                        });
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cliData), "2. Client Summary");
-
-                        const mapStore = (r) => [r.Client, r.ExpectedEmployee, r.storeCode, r.storeName, r.WeekNumber, r.PlannedDay, r.PlannedDate, r.Status];
-                        const detailHeaders = ["Client", "Capturer Name", "Store Code", "Store Name", "Planned Week", "Planned Weekday", "Planned Date", "Status"];
-
-                        const deduplicatedPlanned = details.planned.filter(p => {
-                            const uniqueKey = `${p.Client}_${p.ExpectedEmployee}_${p.storeCode}`;
-                            return state.perfResults.trackingSets.validPlannedKeys.has(uniqueKey);
-                        });
-                        
-                        let planData = [detailHeaders].concat(deduplicatedPlanned.map(mapStore));
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(planData), "3. Planned Store Details");
-
-                        let outData = [detailHeaders].concat(details.outstanding.map(mapStore));
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(outData), "4. Outstanding Stores");
-
-                        let unexpData = [detailHeaders].concat(details.unexpected.map(mapStore));
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unexpData), "5. Unexpected Captures");
-
-                        let revData = [detailHeaders].concat(details.review.map(mapStore));
-                        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(revData), "6. Needs Review");
-
-                        XLSX.writeFile(wb, `Auditor_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-
+                        state.masterData = [];
+                        ui.renderMasterTable();
+                        document.getElementById('master-stats').classList.add('hidden');
+                        ui.showToast("Master data cleared.", "success");
                     } catch (e) {
-                        console.error("Export Error:", e);
-                        ui.showModal("Export Failed", "An error occurred while generating the Excel file.");
-                    } finally {
-                        if (btn) { 
-                            btn.disabled = false; 
-                            btn.innerHTML = `<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Download Excel Report`;
-                        }
+                        console.error("Clear Master Error:", e);
+                        ui.showToast("Failed to clear master data.", "error");
                     }
-                }, 50);
+                });
+            },
+
+            confirmProcessMaster() {
+                const text = document.getElementById('paste-master').value;
+                if (!text.trim()) return ui.showToast("Paste call cycle data first.", "error");
+                if (state.masterData.length > 0) {
+                    ui.showConfirm("Replace Master Data?", "Overwrite existing master data with the new pasted data?", "Replace", () => this.executeProcessMaster(text));
+                } else this.executeProcessMaster(text);
+            },
+
+            async executeProcessMaster(text) {
+                ui.showToast("Processing...", "info");
+                try {
+                    const req = ['EmployeeName', 'WeekNumber', 'WeekDay', 'AS400StoreCode', 'StoreName', 'TBFSIR'];
+                    const parsed = engine.parseTSV(text, req);
+                    state.masterData = parsed.map(r => ({ ...r, AS400StoreCode: String(r.AS400StoreCode).trim() }));
+                    
+                    document.getElementById('master-stats').innerHTML = `<strong>Success:</strong> ${parsed.length} rows processed.`;
+                    document.getElementById('master-stats').classList.remove('hidden');
+                    
+                    await saveMasterData();
+                    document.getElementById('paste-master').value = '';
+                    ui.renderMasterTable();
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            addMapping() {
+                const l = document.getElementById('new-login-id').value.trim();
+                const e = document.getElementById('new-emp-name').value.trim();
+                if(l && e) { state.mappings[l] = e; saveMappings(); ui.renderMappings(); ui.showToast("Added", "success"); }
+            },
+            removeMapping(l) { delete state.mappings[l]; saveMappings(); ui.renderMappings(); },
+
+            processPastedActuals() {
+                const text = document.getElementById('paste-actuals').value;
+                if (!text.trim() || !state.masterData.length) return ui.showModal("Error", "Missing report or master data.");
+                try {
+                    const req = ['Date', 'storeCode'];
+                    state.currentActuals = engine.parseTSV(text, req);
+                    const monthsSet = new Set();
+                    state.currentActuals.forEach(r => {
+                        let d = engine.parseDate(r.Date);
+                        if (d) monthsSet.add(`d.getFullYear()-{d.getMonth()}`);
+                    });
+                    if(monthsSet.size === 0) throw new Error("No valid dates found to calculate schedule.");
+
+                    state.expectedPool = [];
+                    const client = document.querySelector('input[name="client"]:checked').value;
+                    const masterFilter = state.masterData.filter(m => String(m[client]) === '1' || String(m[client]).toLowerCase() === 'true');
+                    
+                    let conflictsCount = 0;
+                    masterFilter.forEach(m => {
+                        let expDayNr = engine.getDayNumber(m.WeekDay);
+                        let conflict = (m.DayNr && expDayNr > 0 && String(m.DayNr) !== String(expDayNr)) || expDayNr === 0;
+                        monthsSet.forEach(mo => {
+                            const [y, mm] = mo.split('-');
+                            let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
+                            if(!d) conflict = true;
+                            state.expectedPool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _hasConflict: conflict });
+                        });
+                        if (conflict) conflictsCount++;
+                    });
+
+                    document.getElementById('recon-setup').classList.add('hidden');
+                    saveWorkspaceState();
+                    document.getElementById('schedule-validation-section').classList.remove('hidden-view');
+                    document.getElementById('sv-conflicts').innerText = conflictsCount > 0 ? `${conflictsCount} issues found` : 'None detected';
+                    
+                    document.getElementById('schedule-validation-tbody').innerHTML = state.expectedPool.slice(0,100).map(e => `
+                        <tr><td class="p-2">e.EmployeeName</td><tdclass="p-2">{e.StoreName}</td><td class="p-2">Wk ${e.WeekNumber} - ${e.WeekDay}</td>
+                        <td class="p-2 font-mono">${e._ExpectedDateStr}</td><td class="p-2 font-bold e.hasConflict?'text-red-500':'text-green-500'">{e._hasConflict?'CONFLICT':'OK'}</td></tr>
+                    `).join('');
+
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            cancelReconciliation() {
+                document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                document.getElementById('recon-setup').classList.remove('hidden');
+            },
+
+            runReconciliation() {
+                const client = document.querySelector('input[name="client"]:checked').value;
+                ui.showToast("Running...", "info");
+                try {
+                    const r = engine.run(state.currentActuals, client, state.expectedPool);
+                    state.lastResults = r;
+                    
+                    document.getElementById('metric-expected').innerText = r.expectedCount;
+                    document.getElementById('metric-matched').innerText = r.matched.length;
+                    document.getElementById('metric-missing').innerText = r.missing.length;
+                    document.getElementById('metric-unexpected').innerText = r.unexpected.length;
+                    document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
+                    document.getElementById('metric-review').innerText = r.review.length;
+                    document.getElementById('metric-completion').innerText = r.expectedCount > 0 ? Math.round(((r.matched.length + r.wrongDay.length + r.unexpected.length) / r.expectedCount)*100) + '%' : '0%';
+
+                    document.getElementById('schedule-validation-section').classList.add('hidden-view');
+                    document.getElementById('recon-results').classList.remove('hidden-view');
+                    ui.switchResultTab('tab-missing');
+                    
+                    saveHistory({ client, expected: r.expectedCount, matched: r.matched.length, missing: r.missing.length, unexpected: r.unexpected.length, wrongDay: r.wrongDay.length, review: r.review.length }, r);
+                } catch (e) { ui.showModal("Error", e.message); }
+            },
+
+            exportResults() {
+                if(!state.lastResults) return;
+                let exp = [];
+                const mapR = (t, r) => ({ 'Status': t, 'Reporting Month': r.ReportingMonth, 'Sch. Week': r.WeekNumber, 'Sch. DayNr': r.DayNr, 'Planned Weekday': r.PlannedDay, 'Planned Date': r.PlannedDate, 'Store Code': r.storeCode, 'Store Name': r.storeName, 'Expected Employee': r.ExpectedEmployee, 'Act. Date': r.ActualDate, 'Act. Weekday': r.ActualDay, 'Captured By': r.loginId, 'Categories': r.CategoriesCaptured, 'Reason': r.DiscrepancyReason });
+                
+                exp = exp.concat(state.lastResults.missing.map(r => mapR('MISSING', r)));
+                exp = exp.concat(state.lastResults.unexpected.map(r => mapR('UNEXPECTED', r)));
+                exp = exp.concat(state.lastResults.wrongDay.map(r => mapR('CAPTURED, ON WRONG DAY', r)));
+                exp = exp.concat(state.lastResults.review.map(r => mapR('REVIEW', r)));
+                exp = exp.concat(state.lastResults.matched.map(r => mapR('MATCHED', r)));
+
+                const ws = XLSX.utils.json_to_sheet(exp);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Results");
+                XLSX.writeFile(wb, `CallCycle_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
             }
         };
 
-        setTimeout(() => ui.loginWithProfile('Admin'), 500);
+        window.onload = initFirebase;
     </script>
 </body>
 </html>
+
+
