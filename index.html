@@ -159,7 +159,7 @@
                                 <label class="block text-sm font-medium text-slate-700">2. Paste IR Image Report (Excel / TSV)</label>
                                 <button onclick="app.clearWorkspaceData()" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-2 py-1 bg-red-50 border border-red-200 hover:bg-red-100 rounded transition-colors">Clear Report</button>
                             </div>
-                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: ticketNo, Date, userid, loginId, storeid, storeCode, storeName, Headline Category..." style="min-height: 150px;"></textarea>
+                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: Date, loginId/userid, storeCode, storeName..." style="min-height: 150px;"></textarea>
                             <div class="mt-4 flex justify-end">
                                 <button onclick="app.processPastedActuals()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -223,36 +223,36 @@
 
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique scheduled visits">Planned</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique scheduled visits in reporting month">Planned</p>
                             <p id="metric-expected" class="text-2xl font-bold text-slate-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-b-4 border-b-teal-500">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique store codes parsed from IR">Total Captured</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Total unique store codes found in IR reports">Total Captured</p>
                             <p id="metric-captured" class="text-2xl font-bold text-teal-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched to correct planned day">Compliant</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched to exact store, auditor, and planned day">Compliant</p>
                             <p id="metric-matched" class="text-2xl font-bold text-green-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Expected - Compliant">Outstanding</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Expected - Compliant (Includes Missing and Wrong Day)">Outstanding</p>
                             <p id="metric-missing" class="text-2xl font-bold text-red-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Unexpected</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Stores parsed in IR but not on call cycle">Unexpected</p>
                             <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched but on wrong day">Wrong Day</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched store/auditor but captured on wrong day">Wrong Day</p>
                             <p id="metric-wrongday" class="text-2xl font-bold text-green-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Needs Review</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Missing invalid dates or unmapped IDs">Needs Review</p>
                             <p id="metric-review" class="text-2xl font-bold text-purple-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="(Compliant / Expected) * 100">Compliance %</p>
-                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">N/A</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="(Total Captured / Planned) * 100">Compliance %</p>
+                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0.0%</p>
                         </div>
                     </div>
 
@@ -709,12 +709,6 @@
                 return data;
             },
 
-            normalizeCode(code) {
-                if (code === null || code === undefined || code === '') return null;
-                const s = String(code).trim();
-                return (s !== '0' && s.toLowerCase() !== 'null' && s.toLowerCase() !== 'undefined' && s !== '-' && s.length > 0) ? s : null;
-            },
-
             normalizeText(str) { return str ? String(str).toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
 
             parseDate(dateStr) {
@@ -870,6 +864,22 @@
                                 mappedEmpName = directMatch;
                                 foundVal = rawId;
                                 break;
+                            }
+
+                            // Smart auto-resolver for First.Last@smollan.com formats
+                            if (!mappedEmpName && rawId.includes('@')) {
+                                const namePart = rawId.split('@')[0].replace(/[\.\_]/g, ' ');
+                                const nameTokens = this.normalizeText(namePart).split(' ');
+                                const emailMatch = window.allKnownAuditorsCache && window.allKnownAuditorsCache.find(a => {
+                                    const normA = this.normalizeText(a);
+                                    // Check if every part of the email name (e.g. 'masoma', 'moloi') exists in the master name
+                                    return nameTokens.every(token => normA.includes(token));
+                                });
+                                if (emailMatch) {
+                                    mappedEmpName = emailMatch;
+                                    foundVal = rawId;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1294,7 +1304,7 @@
                 document.getElementById('metric-expected').innerText = run.expected;
                 document.getElementById('metric-captured').innerText = run.capturedCount || r.capturedStoreCodes?.size || 0;
                 document.getElementById('metric-matched').innerText = r.matched.length;
-                document.getElementById('metric-missing').innerText = r.missing.length + r.wrongDay.length;
+                document.getElementById('metric-missing').innerText = r.expectedCount - r.matched.length;
                 document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                 document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                 document.getElementById('metric-review').innerText = r.review.length;
@@ -1457,12 +1467,12 @@
                     const r = engine.run(state.currentActuals, cName, validExpectedPool, rYear, rMonth); 
                     state.lastResults = r;
                     
-                    const compStr = r.expectedCount > 0 ? (r.matched.length / r.expectedCount * 100).toFixed(1) + '%' : 'N/A';
+                    const compStr = r.expectedCount > 0 ? (r.capturedStoreCodes.size / r.expectedCount * 100).toFixed(1) + '%' : '0.0%';
 
                     document.getElementById('metric-expected').innerText = r.expectedCount;
                     document.getElementById('metric-captured').innerText = r.capturedStoreCodes.size;
                     document.getElementById('metric-matched').innerText = r.matched.length;
-                    document.getElementById('metric-missing').innerText = r.missing.length + r.wrongDay.length; 
+                    document.getElementById('metric-missing').innerText = r.expectedCount - r.matched.length; 
                     document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                     document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                     document.getElementById('metric-review').innerText = r.review.length;
@@ -1629,26 +1639,30 @@
                                 totalCaptured += capCount;
                                 totalCompliant += cCount;
 
-                                const compStr = pCount > 0 ? `${(cCount / pCount * 100).toFixed(1)}%` : "N/A";
+                                const outstandingCount = pCount - cCount;
+                                const compStr = pCount > 0 ? (capCount / pCount * 100).toFixed(1) + '%' : '0.0%';
 
                                 summaryTable.push({
                                     "Auditor Name": emp,
                                     "Client": cName,
                                     "Planned Visits": pCount,
                                     "Total Captured Stores": capCount,
+                                    "Outstanding Stores": outstandingCount,
                                     "Compliance %": compStr
                                 });
                                 
                                 exportTabOutput.push(...missingC);
                             });
                             
-                            const totalCompStr = totalPlanned > 0 ? `${(totalCompliant / totalPlanned * 100).toFixed(1)}%` : "N/A";
+                            const totalOutstanding = totalPlanned - totalCompliant;
+                            const totalCompStr = totalPlanned > 0 ? (totalCaptured / totalPlanned * 100).toFixed(1) + '%' : '0.0%';
                             
                             summaryTable.push({
                                 "Auditor Name": `${emp} - TOTAL`,
                                 "Client": "-",
                                 "Planned Visits": totalPlanned,
                                 "Total Captured Stores": totalCaptured,
+                                "Outstanding Stores": totalOutstanding,
                                 "Compliance %": totalCompStr
                             });
                             summaryTable.push({}); 
