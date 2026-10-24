@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Custom scrollbar for tables */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -67,6 +66,10 @@
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                 Reconciliation
             </button>
+            <button onclick="ui.switchView('view-consolidated')" id="nav-consolidated" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Consolidated Report
+            </button>
             <button onclick="ui.switchView('view-master')" id="nav-master" class="nav-btn w-full flex items-center px-4 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                 Master Data <span class="ml-2 text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
@@ -101,6 +104,7 @@
             <div class="flex items-center gap-3">
                 <select id="mobile-nav" class="bg-slate-800 text-sm rounded border border-slate-700 px-2 py-1" onchange="ui.switchView(this.value)">
                     <option value="view-reconcile">Reconciliation</option>
+                    <option value="view-consolidated">Consolidated Report</option>
                     <option value="view-master" id="mobile-nav-master">Master Data</option>
                     <option value="view-mappings" id="mobile-nav-mappings">Employee Map</option>
                     <option value="view-history">History</option>
@@ -194,7 +198,6 @@
                                 </tr>
                             </thead>
                             <tbody id="schedule-validation-tbody" class="divide-y divide-slate-200 bg-white">
-                                <!-- Populated dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -218,17 +221,21 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Expected</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique scheduled visits">Planned</p>
                             <p id="metric-expected" class="text-2xl font-bold text-slate-800 mt-1">0</p>
                         </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-b-4 border-b-teal-500">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique store codes parsed from IR">Total Captured</p>
+                            <p id="metric-captured" class="text-2xl font-bold text-teal-600 mt-1">0</p>
+                        </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Matched (Present)</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched to correct planned day">Compliant</p>
                             <p id="metric-matched" class="text-2xl font-bold text-green-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Missing</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Expected - Compliant">Outstanding</p>
                             <p id="metric-missing" class="text-2xl font-bold text-red-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -236,7 +243,7 @@
                             <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Captured, on wrong day</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched but on wrong day">Wrong Day</p>
                             <p id="metric-wrongday" class="text-2xl font-bold text-green-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -244,8 +251,8 @@
                             <p id="metric-review" class="text-2xl font-bold text-purple-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Completion</p>
-                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0%</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="(Compliant / Expected) * 100">Compliance %</p>
+                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">N/A</p>
                         </div>
                     </div>
 
@@ -255,7 +262,7 @@
                             <button onclick="ui.switchResultTab('tab-unexpected')" id="btn-tab-unexpected" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Unexpected Captures</button>
                             <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Captured, on wrong day</button>
                             <button onclick="ui.switchResultTab('tab-review')" id="btn-tab-review" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Needs Review</button>
-                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Matched Captures</button>
+                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Compliant Captures</button>
                             <div class="flex-1"></div>
                             <button onclick="app.exportResults()" class="self-center mb-1 bg-slate-800 text-white px-3 py-1.5 text-xs rounded shadow hover:bg-slate-700 flex items-center">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -265,6 +272,99 @@
                         <div class="flex-1 overflow-auto p-0 relative">
                             <div id="results-table-container" class="absolute inset-0"></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consolidated Report View -->
+            <div id="view-consolidated" class="view-section hidden-view h-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Consolidated IR Report</h2>
+                        <p class="text-slate-500 text-sm mt-1">Paste reports from all clients to generate a multi-tab Excel workbook with missed store schedules for all 9 auditors.</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="md:pr-6 md:border-r border-slate-200 flex-1">
+                            <h3 class="font-bold text-slate-800 text-sm">Reporting Period</h3>
+                            <p class="text-xs text-slate-500 mt-0.5 mb-2">Select the strict reporting month boundary. Out-of-month records will be universally dropped.</p>
+                            <input type="month" id="cr-month-selector" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full max-w-[240px] focus:ring-2 focus:ring-blue-500 shadow-sm bg-slate-50">
+                        </div>
+                        <div class="flex-1 pl-0 md:pl-6">
+                            <h3 class="font-bold text-slate-800 text-sm">Lipton Retailer Selection</h3>
+                            <p class="text-xs text-slate-500 mt-0.5 mb-2">Filter planned Lipton stores by retailer. TBFS and RCL remain completely unaffected.</p>
+                            <div class="relative w-full md:w-72">
+                                <button type="button" onclick="document.getElementById('cr-lipton-dropdown').classList.toggle('hidden')" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm flex justify-between items-center text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                    <span id="cr-lipton-dropdown-text">6 Retailers Selected</span>
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div id="cr-lipton-dropdown" class="absolute right-0 z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl hidden">
+                                    <div class="p-2 border-b border-slate-100 flex items-center gap-2">
+                                        <input type="text" id="cr-lipton-search" oninput="app.filterCrLiptonRetailerList()" placeholder="Search retailer..." class="w-full border border-slate-300 rounded px-2 py-1 text-xs">
+                                    </div>
+                                    <div class="p-2 border-b border-slate-100 flex justify-between bg-slate-50">
+                                        <button onclick="app.toggleAllCrLiptonRetailers(true)" class="text-xs text-blue-600 font-semibold hover:underline">Select All</button>
+                                        <button onclick="app.toggleAllCrLiptonRetailers(false)" class="text-xs text-slate-500 hover:underline">Clear</button>
+                                    </div>
+                                    <div id="cr-lipton-retailer-options" class="max-h-48 overflow-y-auto p-2 space-y-1">
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="Checkers" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">Checkers</span>
+                                        </label>
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="Shoprite" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">Shoprite</span>
+                                        </label>
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="SPAR" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">SPAR</span>
+                                        </label>
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="SUPERSPAR" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">SUPERSPAR</span>
+                                        </label>
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="Pick n Pay" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">Pick n Pay</span>
+                                        </label>
+                                        <label class="cr-retailer-row flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                            <input type="checkbox" value="Makro" class="cr-lipton-cb rounded text-blue-600 h-4 w-4" checked onchange="app.updateCrLiptonDropdownText()">
+                                            <span class="text-sm text-slate-700">Makro</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">TBFS IR Report</label>
+                            <textarea id="cr-paste-tbfs" class="w-full border border-slate-300 rounded-lg p-3 text-xs font-mono h-36" placeholder="Paste TBFS IR Report..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">RCL IR Report</label>
+                            <textarea id="cr-paste-rcl" class="w-full border border-slate-300 rounded-lg p-3 text-xs font-mono h-36" placeholder="Paste RCL IR Report..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Lipton IR Report</label>
+                            <textarea id="cr-paste-lipton" class="w-full border border-slate-300 rounded-lg p-3 text-xs font-mono h-36" placeholder="Paste Lipton IR Report..."></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-col gap-4">
+                        <div class="flex justify-between items-center w-full">
+                            <span id="cr-status-msg" class="text-sm font-medium text-slate-600"></span>
+                            <button onclick="app.generateConsolidatedReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center h-fit">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Generate Consolidated Workbook
+                            </button>
+                        </div>
+                        <div id="cr-diagnostics" class="hidden p-4 bg-slate-900 text-green-400 rounded-lg text-[11px] font-mono max-h-96 overflow-y-auto whitespace-pre-wrap shadow-inner border border-slate-700 w-full leading-relaxed tracking-wide"></div>
                     </div>
                 </div>
             </div>
@@ -310,6 +410,7 @@
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">Region</th>
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">EmployeeName</th>
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">WeekNr</th>
+                                    <th class="px-4 py-3 text-left font-medium text-slate-500">DayNr</th>
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">WeekDay</th>
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">StoreCode</th>
                                     <th class="px-4 py-3 text-left font-medium text-slate-500">StoreName</th>
@@ -319,7 +420,7 @@
                                 </tr>
                             </thead>
                             <tbody id="master-tbody" class="divide-y divide-slate-200 bg-white">
-                                <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No master data loaded.</td></tr>
+                                <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500">No master data loaded.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -407,9 +508,6 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, query, getDocs, addDoc, writeBatch, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        /* ==========================================
-           FIREBASE CONFIGURATION
-        */
         const firebaseConfig = {
             apiKey: "AIzaSyBuhTRjaCB0GmjwA4vwMTrVNAJpCMBzfwU",
             authDomain: "call-cycle-tracker.firebaseapp.com",
@@ -431,6 +529,8 @@
             dbReady: false,
             user: null
         };
+
+        window.allKnownAuditorsCache = []; 
 
         let db, auth;
 
@@ -522,6 +622,15 @@
                 let loaded = [];
                 snapshot.forEach(doc => { if (doc.data().chunk) loaded = loaded.concat(JSON.parse(doc.data().chunk)); });
                 state.masterData = loaded;
+                
+                const auditors = new Set();
+                state.masterData.forEach(m => {
+                    if (m.EmployeeName && m.EmployeeName.trim() && m.EmployeeName.toLowerCase() !== 'unassigned') {
+                        auditors.add(m.EmployeeName.trim());
+                    }
+                });
+                window.allKnownAuditorsCache = Array.from(auditors);
+
                 ui.renderMasterTable();
             } catch (e) { console.error("Load Master:", e); }
         }
@@ -541,6 +650,13 @@
                 for (let i = 0; i < state.masterData.length; i += chunkSize) {
                     await addDoc(collection(db, MASTER_PATH), { chunk: JSON.stringify(state.masterData.slice(i, i + chunkSize)) });
                 }
+                
+                const auditors = new Set();
+                state.masterData.forEach(m => {
+                    if (m.EmployeeName && m.EmployeeName.trim() && m.EmployeeName.toLowerCase() !== 'unassigned') auditors.add(m.EmployeeName.trim());
+                });
+                window.allKnownAuditorsCache = Array.from(auditors);
+
                 ui.showToast("Master data saved successfully.", "success");
             } catch (e) {
                 console.error("Save Master Error:", e);
@@ -555,7 +671,8 @@
                 await addDoc(collection(db, HISTORY_PATH), {
                     date: new Date().toISOString(), client: summary.client, profile: state.currentProfile, processedBy: state.currentProfile,
                     expected: summary.expected, matched: summary.matched, missing: summary.missing, unexpected: summary.unexpected,
-                    wrongDay: summary.wrongDay, review: summary.review, userId: state.user.uid, fullResults: JSON.stringify(fullResults)
+                    wrongDay: summary.wrongDay, review: summary.review, compliance: summary.compliance, capturedCount: summary.capturedCount, 
+                    userId: state.user.uid, fullResults: JSON.stringify(fullResults)
                 });
                 await loadHistory();
             } catch (e) { console.error("Save History Error:", e); }
@@ -577,10 +694,12 @@
         const engine = {
             parseTSV(text, reqHeaders = []) {
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-                if (lines.length < 2) throw new Error("Not enough data. Headers or rows are missing.");
+                if (lines.length < 2) return [];
                 const headers = lines[0].split('\t').map(h => h.trim());
-                const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
-                if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
+                if(reqHeaders.length > 0) {
+                    const missing = reqHeaders.filter(req => !headers.some(h => h.toLowerCase() === req.toLowerCase()));
+                    if (missing.length > 0) throw new Error(`Missing required columns:\n${missing.join(', ')}`);
+                }
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
                     const cols = lines[i].split('\t');
@@ -591,29 +710,42 @@
             },
 
             normalizeCode(code) {
-                if (!code || code === '0' || code === '#N/A' || code === '-') return null;
+                if (code === null || code === undefined || code === '') return null;
                 const s = String(code).trim();
-                return s.length > 0 && s.toLowerCase() !== 'null' && s !== 'undefined' ? s : null;
+                return (s !== '0' && s.toLowerCase() !== 'null' && s.toLowerCase() !== 'undefined' && s !== '-' && s.length > 0) ? s : null;
             },
 
-            normalizeText(str) { return str ? str.toString().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
+            normalizeText(str) { return str ? String(str).toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim() : ''; },
 
             parseDate(dateStr) {
                 if (!dateStr) return null;
-                if (typeof dateStr === 'string') {
-                    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/);
-                    if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                const str = String(dateStr).trim();
+
+                const isValidDate = (y, m, d) => {
+                    const dt = new Date(y, m, d);
+                    return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d ? dt : null;
+                };
+
+                let m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})(?:[T\s].*)?$/);
+                if (m) {
+                    return isValidDate(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
                 }
-                let d = new Date(dateStr);
-                if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                const parts = String(dateStr).split(/[\/\-]/);
-                if (parts.length === 3 && parts[2].length === 4) {
-                    d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                    if (!isNaN(d.getTime())) return d;
+
+                m = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:[T\s].*)?$/);
+                if (m) {
+                    return isValidDate(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
                 }
-                return null;
+                
+                if (!isNaN(str) && Number(str) > 30000 && Number(str) < 60000) {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    excelEpoch.setDate(excelEpoch.getDate() + Math.floor(Number(str)));
+                    return isValidDate(excelEpoch.getFullYear(), excelEpoch.getMonth(), excelEpoch.getDate());
+                }
+                
+                return null; 
             },
 
+            // RULE: Week 1 strictly starts on the Monday ON or BEFORE the 1st day of the reporting month.
             getWeekOneMonday(year, month) {
                 let firstOfMonth = new Date(year, month, 1);
                 let dayOfWeek = firstOfMonth.getDay();
@@ -621,156 +753,251 @@
                 return new Date(year, month, 1 - jsDayToMondayZero);
             },
 
-            getExpectedDate(year, month, weekNumber, weekDayStr) {
+            getExpectedDate(year, month, weekNumber, dayNrRaw, weekDayStr) {
+                if (!weekNumber || !/^\d+$/.test(String(weekNumber).trim())) return { date: null, error: 'INVALID_NUMBER_FORMAT' };
+                if (!dayNrRaw || !/^\d+$/.test(String(dayNrRaw).trim())) return { date: null, error: 'INVALID_NUMBER_FORMAT' };
+
+                const wNum = parseInt(String(weekNumber).trim(), 10);
+                const dNum = parseInt(String(dayNrRaw).trim(), 10);
+
+                if (wNum < 1) return { date: null, error: 'INVALID_WEEKNR' };
+                if (dNum < 1 || dNum > 6) return { date: null, error: 'INVALID_DAYNR' };
+
+                const wDayNorm = this.normalizeText(weekDayStr);
+                const dayToNum = { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6 };
+
+                if (!wDayNorm || !dayToNum[wDayNorm]) return { date: null, error: 'INVALID_WEEKDAY' };
+                if (dayToNum[wDayNorm] !== dNum) return { date: null, error: 'CONFLICT_WEEKDAY' };
+
                 let w1Mon = this.getWeekOneMonday(year, month);
-                let dayOffset = { 'monday':0, 'tuesday':1, 'wednesday':2, 'thursday':3, 'friday':4, 'saturday':5, 'sunday':6 }[this.normalizeText(weekDayStr)] ?? -1;
-                if (dayOffset === -1) return null;
-                let targetDate = new Date(w1Mon);
-                targetDate.setDate(w1Mon.getDate() + ((weekNumber - 1) * 7) + dayOffset);
-                return targetDate;
+                let targetDate = new Date(w1Mon.getFullYear(), w1Mon.getMonth(), w1Mon.getDate());
+                targetDate.setDate(w1Mon.getDate() + ((wNum - 1) * 7) + (dNum - 1));
+                
+                if (targetDate.getMonth() !== month || targetDate.getFullYear() !== year) {
+                    return { date: targetDate, error: 'OUT_OF_PERIOD' }; 
+                }
+                
+                return { date: targetDate, error: null };
             },
 
-            formatDate(dateObj) { return dateObj ? dateObj.toISOString().split('T')[0] : ''; },
-            getDayNumber(weekDayStr) { return { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7 }[this.normalizeText(weekDayStr)] ?? 0; },
+            formatDate(dateObj) { 
+                if (!dateObj || isNaN(dateObj.getTime())) return '';
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            },
 
-            run(actuals, client, expectedPool) {
-                const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], expectedCount: expectedPool.length };
-                let catHeader = 'category', loginHeader = 'loginId';
-                if(actuals.length > 0) {
-                    const keys = Object.keys(actuals[0]);
-                    const foundCat = keys.find(k => /category/i.test(k)); if(foundCat) catHeader = foundCat;
-                    const foundLog = keys.find(k => /loginid|userid/i.test(k)); if(foundLog) loginHeader = foundLog;
+            getVal(row, matchers) {
+                for (const m of matchers) {
+                    const cleanM = m.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const key = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanM);
+                    if (key && row[key] !== undefined && row[key] !== null) {
+                        const val = String(row[key]).trim();
+                        if (val !== '' && val !== '-' && val.toLowerCase() !== 'n/a' && val.toLowerCase() !== 'null') {
+                            return val; 
+                        }
+                    }
                 }
+                return null;
+            },
 
-                const actualVisitsByCode = new Map();
+            run(actuals, client, validExpectedPool, reportingYear, reportingMonth) {
+                const results = { matched: [], missing: [], unexpected: [], review: [], wrongDay: [], capturedStoreCodes: new Set(), totalCapturedByEmployee: {} };
+                
+                const diag = {
+                    rawProcessed: actuals.length,
+                    validDatesInMonth: 0,
+                    mappedCount: 0,
+                    unmappedCount: 0,
+                    unmappedSamples: []
+                };
+
+                // Deduplicate Expected Pool by Unique Scheduled Visit (Client + Employee + StoreCode + PlannedDate)
+                const uniqueExpected = [];
+                const seenExp = new Set();
+                validExpectedPool.forEach(exp => {
+                    const key = `${client}_${exp.EmployeeName}_${exp.AS400StoreCode}_${exp._ExpectedDateStr}`;
+                    if (!seenExp.has(key)) {
+                        seenExp.add(key);
+                        exp._Client = client; 
+                        uniqueExpected.push(exp);
+                    }
+                });
+                results.expectedCount = uniqueExpected.length;
+                
+                // Process & Deduplicate Actuals
+                const validCaptures = [];
+                const seenCap = new Set();
                 
                 actuals.forEach(act => {
-                    let codeVal = this.normalizeCode(act.storeCode || act.StoreCode);
-                    if (!codeVal) return;
+                    const codeRaw = this.getVal(act, ['storecode', 'storeid', 'as400storecode', 'store', 'sitecode', 'siteid']);
+                    const code = codeRaw ? String(codeRaw).trim() : null;
                     
-                    const parsedDate = this.parseDate(act.Date);
-                    const dateStr = parsedDate ? this.formatDate(parsedDate) : 'UnknownDate';
-                    const visitKey = `${codeVal}_${dateStr}`;
+                    const rawDate = this.getVal(act, ['date', 'actualdate', 'visitdate']);
+                    const parsedDate = this.parseDate(rawDate);
                     
-                    if (!actualVisitsByCode.has(visitKey)) {
-                        actualVisitsByCode.set(visitKey, {
-                            storeCode: codeVal,
-                            storeName: act.storeName || act.StoreName || '',
-                            dateStr: dateStr,
-                            parsedDate: parsedDate,
-                            rawCount: 0,
-                            loginIds: new Set(),
-                            mappedEmps: new Set(),
-                            categories: new Set(),
-                            matchedToPlanned: false
+                    if (reportingYear !== undefined && reportingMonth !== undefined) {
+                        if (parsedDate && (parsedDate.getFullYear() !== reportingYear || parsedDate.getMonth() !== reportingMonth)) {
+                            return; 
+                        }
+                    }
+
+                    const actualDateStr = parsedDate ? this.formatDate(parsedDate) : null;
+                    
+                    let foundVal = null;
+                    let mappedEmpName = null;
+                    let capturedIds = [];
+                    
+                    // Robust identity mapping check
+                    const loginKeys = ['loginid', 'userid', 'capturer', 'employee', 'username', 'employeename', 'auditor', 'name'];
+                    for (let key of loginKeys) {
+                        const val = this.getVal(act, [key]);
+                        if (val) {
+                            const rawId = String(val).trim();
+                            capturedIds.push(rawId);
+                            const searchKey = rawId.toLowerCase().replace(/\s+/g, ' ').trim();
+                            
+                            const mapKey = Object.keys(state.mappings || {}).find(k => k.toLowerCase().replace(/\s+/g, ' ').trim() === searchKey);
+                            if (mapKey) {
+                                mappedEmpName = state.mappings[mapKey];
+                                foundVal = rawId;
+                                break;
+                            }
+                            
+                            const directMatch = window.allKnownAuditorsCache && window.allKnownAuditorsCache.find(a => this.normalizeText(a) === this.normalizeText(rawId));
+                            if (directMatch) {
+                                mappedEmpName = directMatch;
+                                foundVal = rawId;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!parsedDate || isNaN(parsedDate.getTime()) || !code || !mappedEmpName) {
+                        if (parsedDate && !isNaN(parsedDate.getTime()) && code && !mappedEmpName) {
+                            diag.unmappedCount++;
+                            if (diag.unmappedSamples.length < 10) {
+                                diag.unmappedSamples.push(capturedIds.length > 0 ? `'${capturedIds.join(' or ')}'` : 'NO_ID_FOUND');
+                            }
+                        }
+                        results.review.push({
+                            Client: client, Employee: mappedEmpName || 'UNMAPPED',
+                            StoreCode: code || 'MISSING', StoreName: act.StoreName || act.storeName || act.Storename || '-',
+                            PlannedWeek: '-', PlannedDay: '-', PlannedDate: '-', 
+                            Status: 'NEEDS REVIEW',
+                            ActualDate: parsedDate ? actualDateStr : String(rawDate || 'Missing'), 
+                            CapturingLogin: capturedIds.join(', ') || 'Unknown'
+                        });
+                        return;
+                    }
+                    
+                    diag.validDatesInMonth++;
+                    results.capturedStoreCodes.add(code);
+                    diag.mappedCount++;
+                    
+                    const normEmpName = this.normalizeText(mappedEmpName);
+                    if (!results.totalCapturedByEmployee[normEmpName]) results.totalCapturedByEmployee[normEmpName] = new Set();
+                    results.totalCapturedByEmployee[normEmpName].add(code); 
+
+                    // Deduplicate IR rows for the same Store + Date + Employee + Client
+                    const capKey = `${client}_${mappedEmpName}_${code}_${actualDateStr}`;
+                    if (!seenCap.has(capKey)) {
+                        seenCap.add(capKey);
+                        validCaptures.push({
+                            client: client,
+                            storeCode: code,
+                            actualDate: actualDateStr,
+                            mappedEmpName: mappedEmpName,
+                            loginId: foundVal,
+                            storeName: act.StoreName || act.storeName || act.Storename || '-',
+                            used: false
                         });
                     }
-                    const v = actualVisitsByCode.get(visitKey);
-                    v.rawCount++;
-                    
-                    const login = act[loginHeader] || 'Unknown';
-                    v.loginIds.add(login);
-                    const mapped = state.mappings[login];
-                    if (mapped) v.mappedEmps.add(mapped);
-                    
-                    let cat = act[catHeader];
-                    if(cat) v.categories.add(cat.toString().trim().replace(/\s+/g, ' '));
                 });
-
-                expectedPool.forEach(exp => {
-                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
-                    exp._isValidCode = codeVal !== null;
-                    const expectedDateStr = exp._ExpectedDateStr;
+                
+                // Pass 1: EXACT MATCH (Compliant Stores)
+                uniqueExpected.forEach(exp => {
+                    const expStore = String(exp.AS400StoreCode).trim();
+                    const expDate = exp._ExpectedDateStr;
+                    const expEmp = this.normalizeText(exp.EmployeeName);
                     
-                    if(exp._isValidCode) {
-                        const exactMatchKey = `${codeVal}_${expectedDateStr}`;
-                        const exactMatch = actualVisitsByCode.get(exactMatchKey);
-                        if (exactMatch) {
-                            exp._matchedVisit = exactMatch;
-                            exp._matchType = 'EXACT';
-                            exactMatch.matchedToPlanned = true;
-                        }
+                    const match = validCaptures.find(c => 
+                        !c.used &&
+                        c.storeCode === expStore &&
+                        c.actualDate === expDate &&
+                        this.normalizeText(c.mappedEmpName) === expEmp
+                    );
+                    
+                    if (match) {
+                        match.used = true;
+                        exp._matchedCapture = match;
+                        exp._matchType = 'EXACT';
                     }
                 });
                 
-                expectedPool.forEach(exp => {
-                    if (exp._matchedVisit || !exp._isValidCode) return;
-                    const codeVal = this.normalizeCode(exp.AS400StoreCode);
-                    const availableVisits = Array.from(actualVisitsByCode.values()).filter(v => v.storeCode === codeVal && !v.matchedToPlanned);
-                    if (availableVisits.length > 0) {
-                        const wrongDayMatch = availableVisits[0];
-                        exp._matchedVisit = wrongDayMatch;
+                // Pass 2: WRONG DAY MATCH
+                uniqueExpected.forEach(exp => {
+                    if (exp._matchedCapture) return;
+                    const expStore = String(exp.AS400StoreCode).trim();
+                    const expEmp = this.normalizeText(exp.EmployeeName);
+                    
+                    const match = validCaptures.find(c => 
+                        !c.used &&
+                        c.storeCode === expStore &&
+                        this.normalizeText(c.mappedEmpName) === expEmp
+                    );
+                    
+                    if (match) {
+                        match.used = true;
+                        exp._matchedCapture = match;
                         exp._matchType = 'WRONG_DAY';
-                        wrongDayMatch.matchedToPlanned = true;
                     }
                 });
-
-                expectedPool.forEach(exp => {
-                    const expDateParsed = this.parseDate(exp._ExpectedDateStr);
-                    const monthStr = expDateParsed ? expDateParsed.toLocaleString('en-US', {month: 'long', year: 'numeric'}) : 'Unknown Month';
-                    
+                
+                // Populate Standard Results
+                uniqueExpected.forEach(exp => {
                     const baseRec = {
-                        ReportingMonth: monthStr,
-                        WeekNumber: exp.WeekNumber || '-',
-                        DayNr: exp.DayNr || '-',
-                        PlannedDay: exp.WeekDay || '-',
-                        PlannedDate: exp._ExpectedDateStr || '-',
-                        storeCode: exp.AS400StoreCode || '',
-                        storeName: exp.StoreName || '',
-                        ExpectedEmployee: exp.EmployeeName || '',
-                        Client: client
+                        Client: client, 
+                        Employee: exp.EmployeeName,
+                        StoreCode: String(exp.AS400StoreCode).trim(), 
+                        StoreName: exp.StoreName,
+                        PlannedWeek: exp.WeekNumber, 
+                        PlannedDay: exp.WeekDay, 
+                        PlannedDate: exp._ExpectedDateStr
                     };
 
-                    if (!exp._isValidCode) {
-                        results.review.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'NEEDS REVIEW', DiscrepancyReason: `Master schedule missing valid AS400StoreCode.` });
-                    } else if (!exp._matchedVisit) {
-                        results.missing.push({ ...baseRec, ActualDate: '-', ActualDay: '-', CategoriesCaptured: '-', loginId: 'N/A', Status: 'MISSING CAPTURE', DiscrepancyReason: `Missed planned visit for Week ${exp.WeekNumber}, ${exp.WeekDay}.` });
+                    if (!exp._matchedCapture) {
+                        results.missing.push({ ...baseRec, Status: 'OUTSTANDING (MISSED)', ActualDate: '-', CapturingLogin: '-' });
                     } else {
-                        const actV = exp._matchedVisit;
-                        const actDayName = actV.parsedDate ? actV.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
-                        const categoryCount = actV.categories.size > 0 ? actV.categories.size.toString() : '-';
+                        const act = exp._matchedCapture;
+                        const rec = { ...baseRec, Status: '', ActualDate: act.actualDate, CapturingLogin: act.loginId };
                         
-                        let isEmpMatch = false;
-                        for (const mapped of actV.mappedEmps) {
-                            if (this.normalizeText(exp.EmployeeName) === this.normalizeText(mapped)) { isEmpMatch = true; break; }
-                        }
-
-                        const rec = {
-                            ...baseRec,
-                            ActualDate: actV.dateStr,
-                            ActualDay: actDayName,
-                            CategoriesCaptured: categoryCount,
-                            loginId: Array.from(actV.loginIds).join(', ') || 'Unknown',
-                            MappedEmployeeName: Array.from(actV.mappedEmps).join(', ')
-                        };
-
                         if (exp._matchType === 'WRONG_DAY') {
-                            results.wrongDay.push({ ...rec, Status: 'CAPTURED, ON WRONG DAY', DiscrepancyReason: `Scheduled for ${exp.WeekDay}, captured on ${actDayName}.` });
-                        } else if (actV.mappedEmps.size === 0) {
-                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Store present exactly on schedule. (Employee mapping unknown).' });
-                        } else if (!isEmpMatch) {
-                            results.wrongDay.push({ ...rec, Status: 'SCHEDULE DISCREPANCY', DiscrepancyReason: `Captured on schedule, but by wrong employee.` });
+                            results.wrongDay.push({ ...rec, Status: 'WRONG DAY' }); 
                         } else {
-                            results.matched.push({ ...rec, Status: 'MATCHED', DiscrepancyReason: 'Captured exactly as scheduled.' });
+                            results.matched.push({ ...rec, Status: 'COMPLIANT' }); 
                         }
                     }
                 });
                 
-                actualVisitsByCode.forEach(v => {
-                    if (!v.matchedToPlanned) {
-                        const actDayName = v.parsedDate ? v.parsedDate.toLocaleDateString('en-US', {weekday: 'long'}) : '-';
-                        const categoryCount = v.categories.size > 0 ? v.categories.size.toString() : '-';
-
-                        const actRec = {
-                            ReportingMonth: '-', WeekNumber: '-', DayNr: '-', PlannedDay: '-', PlannedDate: '-',
-                            storeCode: v.storeCode, storeName: v.storeName, ExpectedEmployee: '-',
-                            ActualDate: v.dateStr, ActualDay: actDayName, CategoriesCaptured: categoryCount,
-                            loginId: Array.from(v.loginIds).join(', ') || 'Unknown', Client: client
-                        };
-                        results.unexpected.push({ ...actRec, Status: 'UNEXPECTED CAPTURE', DiscrepancyReason: 'Store code not found in Master schedule for this client.' });
+                // Pass 3: UNEXPECTED CAPTURES
+                validCaptures.forEach(c => {
+                    if (!c.used) {
+                        results.unexpected.push({
+                            Client: client, 
+                            Employee: c.mappedEmpName, 
+                            StoreCode: c.storeCode, 
+                            StoreName: c.storeName,
+                            PlannedWeek: '-', PlannedDay: '-', PlannedDate: '-',
+                            Status: 'UNEXPECTED', 
+                            ActualDate: c.actualDate, 
+                            CapturingLogin: c.loginId
+                        });
                     }
                 });
-
+                
+                results._diag = diag;
                 return results;
             }
         };
@@ -907,6 +1134,7 @@
                         <td class="px-4 py-2">${r.Region || ''}</td>
                         <td class="px-4 py-2">${r.EmployeeName || ''}</td>
                         <td class="px-4 py-2">${r.WeekNumber || ''}</td>
+                        <td class="px-4 py-2">${r.DayNr || ''}</td>
                         <td class="px-4 py-2">${r.WeekDay || ''}</td>
                         <td class="px-4 py-2 font-mono text-slate-500">${r.AS400StoreCode || ''}</td>
                         <td class="px-4 py-2 font-medium">${r.StoreName || ''}</td>
@@ -919,7 +1147,7 @@
 
             renderMappings() {
                 document.getElementById('mappings-tbody').innerHTML = Object.entries(state.mappings).map(([logId, emp]) => `
-                    <tr><td class="px-4 py-2 font-mono">logId</td><tdclass="px-4py-2font-medium">{emp}</td>
+                    <tr><td class="px-4 py-2 font-mono">${logId}</td><td class="px-4 py-2 font-medium">${emp}</td>
                     <td class="px-4 py-2 text-right"><button onclick="app.removeMapping('${logId}')" class="text-red-500 text-xs">Remove</button></td></tr>
                 `).join('') || `<tr><td colspan="3" class="p-4 text-center">No mappings.</td></tr>`;
             },
@@ -946,29 +1174,37 @@
                 const totalPages = Math.ceil(data.length / size) || 1;
 
                 let html = `<div class="flex flex-col h-full absolute inset-0"><div class="flex-1 overflow-auto"><table class="min-w-full divide-y text-sm"><thead class="bg-slate-100 sticky top-0"><tr>
-                    <th class="p-2 text-left">Week</th><th class="p-2 text-left">Planned Date</th><th class="p-2 text-left">Store Code</th>
-                    <th class="p-2 text-left">Store Name</th><th class="p-2 text-left">Act. Date</th><th class="p-2 text-left">LoginID</th>
-                    <th class="p-2 text-center">Categories</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Explanation</th>
+                    <th class="p-2 text-left">Client</th>
+                    <th class="p-2 text-left">Employee</th>
+                    <th class="p-2 text-left">StoreCode</th>
+                    <th class="p-2 text-left">StoreName</th>
+                    <th class="p-2 text-left">PlannedWeek</th>
+                    <th class="p-2 text-left">PlannedDay</th>
+                    <th class="p-2 text-left">PlannedDate</th>
+                    <th class="p-2 text-left">Status</th>
+                    <th class="p-2 text-left">ActualDate</th>
+                    <th class="p-2 text-left">CapturingLogin</th>
                 </tr></thead><tbody class="bg-white">`;
                 
                 data.slice(start, end).forEach(r => {
                     let statusColorClass = 'text-slate-800';
-                    if (r.Status === 'CAPTURED, ON WRONG DAY') statusColorClass = 'text-green-800';
-                    else if (r.Status === 'MISSING CAPTURE') statusColorClass = 'text-red-600';
-                    else if (r.Status === 'MATCHED') statusColorClass = 'text-green-600';
-                    else if (r.Status === 'UNEXPECTED CAPTURE') statusColorClass = 'text-orange-500';
-                    else if (r.Status === 'NEEDS REVIEW') statusColorClass = 'text-purple-600';
+                    if (r.Status === 'WRONG DAY') statusColorClass = 'text-orange-600';
+                    else if (r.Status === 'OUTSTANDING (MISSED)') statusColorClass = 'text-red-600';
+                    else if (r.Status === 'COMPLIANT') statusColorClass = 'text-green-600';
+                    else if (r.Status === 'UNEXPECTED') statusColorClass = 'text-purple-600';
+                    else if (r.Status === 'NEEDS REVIEW') statusColorClass = 'text-slate-500';
 
                     html += `<tr class="hover:bg-slate-50 border-b">
-                        <td class="p-2 text-xs font-medium">Wk ${r.WeekNumber} - ${r.PlannedDay}</td>
-                        <td class="p-2 text-xs font-mono">${r.PlannedDate}</td>
-                        <td class="p-2 text-xs font-mono font-bold">${r.storeCode}</td>
-                        <td class="p-2 text-xs font-medium">${r.storeName}</td>
-                        <td class="p-2 text-xs font-mono">r.ActualDate({r.ActualDay})</td>
-                        <td class="p-2 text-xs font-mono text-blue-700">${r.loginId}</td>
-                        <td class="p-2 text-xs text-center font-bold">${r.CategoriesCaptured}</td>
-                        <td class="p-2 text-xs font-bold statusColorClass">{r.Status}</td>
-                        <td class="p-2 text-xs text-slate-600">${r.DiscrepancyReason}</td>
+                        <td class="p-2 text-xs font-bold text-slate-600">${r.Client}</td>
+                        <td class="p-2 text-xs font-medium">${r.Employee}</td>
+                        <td class="p-2 text-xs font-mono font-bold">${r.StoreCode}</td>
+                        <td class="p-2 text-xs font-medium">${r.StoreName}</td>
+                        <td class="p-2 text-xs">${r.PlannedWeek}</td>
+                        <td class="p-2 text-xs">${r.PlannedDay}</td>
+                        <td class="p-2 text-xs font-mono font-medium">${r.PlannedDate}</td>
+                        <td class="p-2 text-xs font-bold ${statusColorClass}">${r.Status}</td>
+                        <td class="p-2 text-xs font-mono">${r.ActualDate}</td>
+                        <td class="p-2 text-xs text-slate-500">${r.CapturingLogin}</td>
                     </tr>`;
                 });
                 html += `</tbody></table></div><div class="p-2 bg-slate-50 flex justify-between items-center text-sm">
@@ -980,7 +1216,7 @@
                             <option value="All" ${this.tablePageSize=='All'?'selected':''}>All</option>
                         </select>
                         <button onclick="ui.tablePage--; ui.renderResultsTable()" ${this.tablePage===1?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Prev</button>
-                        <span>this.tablePage/{totalPages}</span>
+                        <span>${this.tablePage}/${totalPages}</span>
                         <button onclick="ui.tablePage++; ui.renderResultsTable()" ${this.tablePage===totalPages?'disabled':''} class="px-2 py-1 border rounded disabled:opacity-50">Next</button>
                     </div>
                 </div></div>`;
@@ -994,12 +1230,13 @@
                 c.innerHTML = hist.map(h => {
                     const d = new Date(h.date);
                     return `<div onclick="app.openHistoryRun('${h.id}')" class="border p-4 rounded-lg shadow-sm hover:shadow-md cursor-pointer bg-white">
-                        <div class="flex justify-between text-xs mb-2"><span class="font-bold bg-blue-100 px-2 rounded">h.client</span><span>{d.toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs mb-2"><span class="font-bold bg-blue-100 px-2 rounded">${h.client}</span><span>${d.toLocaleString()}</span></div>
                         <div class="grid grid-cols-2 text-sm mt-2">
-                            <div>Expected: <span class="font-bold">${h.expected}</span></div>
-                            <div class="text-green-600">Matched: <span class="font-bold">${h.matched}</span></div>
-                            <div class="text-red-600">Missing: <span class="font-bold">${h.missing}</span></div>
-                            <div class="text-orange-500">Unexpected: <span class="font-bold">${h.unexpected}</span></div>
+                            <div>Planned: <span class="font-bold">${h.expected}</span></div>
+                            <div class="text-teal-600">Total Cap: <span class="font-bold">${h.capturedCount || 0}</span></div>
+                            <div class="text-green-600">Compliant: <span class="font-bold">${h.matched}</span></div>
+                            <div class="text-red-600">Outstanding: <span class="font-bold">${h.missing + h.wrongDay}</span></div>
+                            <div class="text-blue-600">Compliance: <span class="font-bold">${h.compliance}</span></div>
                         </div>
                     </div>`;
                 }).join('');
@@ -1007,6 +1244,37 @@
         };
 
         window.app = {
+            classifyRetailer(storeName) {
+                if (!storeName) return "Unknown";
+                const name = engine.normalizeText(storeName);
+                if (/\bsuperspar\b/.test(name) || /\bsuper spar\b/.test(name)) return "SUPERSPAR";
+                if (/\bspar\b/.test(name)) return "SPAR";
+                if (/\bcheckers\b/.test(name)) return "Checkers";
+                if (/\bshoprite\b/.test(name)) return "Shoprite";
+                if (/\bmakro\b/.test(name)) return "Makro";
+                if (/\bpick\s*n\s*pay\b/.test(name) || /\bpnp\b/.test(name)) return "Pick n Pay";
+                return "Unknown";
+            },
+
+            toggleAllCrLiptonRetailers(check) {
+                document.querySelectorAll('.cr-lipton-cb').forEach(cb => cb.checked = check);
+                this.updateCrLiptonDropdownText();
+            },
+
+            updateCrLiptonDropdownText() {
+                const total = document.querySelectorAll('.cr-lipton-cb').length;
+                const checked = document.querySelectorAll('.cr-lipton-cb:checked').length;
+                document.getElementById('cr-lipton-dropdown-text').innerText = checked === total ? "All Retailers Selected" : `${checked} Retailers Selected`;
+            },
+
+            filterCrLiptonRetailerList() {
+                const query = (document.getElementById('cr-lipton-search')?.value || '').toLowerCase().trim();
+                document.querySelectorAll('.cr-retailer-row').forEach(row => {
+                    const text = row.querySelector('span')?.innerText.toLowerCase() || '';
+                    row.style.display = text.includes(query) ? 'flex' : 'none';
+                });
+            },
+
             clearWorkspaceData() {
                 ui.showConfirm("Clear Uploaded Report?", "This removes the pasted report from your workspace.", "Clear Report", async () => {
                     document.getElementById('paste-actuals').value = ''; state.currentActuals = []; ui.resetReconView(); await saveWorkspaceState();
@@ -1024,12 +1292,13 @@
                 
                 const r = state.lastResults;
                 document.getElementById('metric-expected').innerText = run.expected;
+                document.getElementById('metric-captured').innerText = run.capturedCount || r.capturedStoreCodes?.size || 0;
                 document.getElementById('metric-matched').innerText = r.matched.length;
-                document.getElementById('metric-missing').innerText = r.missing.length;
+                document.getElementById('metric-missing').innerText = r.missing.length + r.wrongDay.length;
                 document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                 document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                 document.getElementById('metric-review').innerText = r.review.length;
-                document.getElementById('metric-completion').innerText = run.expected > 0 ? Math.round(((r.matched.length + r.wrongDay.length + r.unexpected.length) / run.expected)*100) + '%' : '0%';
+                document.getElementById('metric-completion').innerText = run.compliance;
 
                 ui.switchView('view-reconcile');
                 document.getElementById('recon-results').classList.remove('hidden-view');
@@ -1082,7 +1351,7 @@
             async executeProcessMaster(text) {
                 ui.showToast("Processing...", "info");
                 try {
-                    const req = ['EmployeeName', 'WeekNumber', 'WeekDay', 'AS400StoreCode', 'StoreName', 'TBFSIR'];
+                    const req = ['EmployeeName', 'WeekNumber', 'DayNr', 'WeekDay', 'AS400StoreCode', 'StoreName', 'TBFSIR'];
                     const parsed = engine.parseTSV(text, req);
                     state.masterData = parsed.map(r => ({ ...r, AS400StoreCode: String(r.AS400StoreCode).trim() }));
                     
@@ -1106,40 +1375,61 @@
                 const text = document.getElementById('paste-actuals').value;
                 if (!text.trim() || !state.masterData.length) return ui.showModal("Error", "Missing report or master data.");
                 try {
-                    const req = ['Date', 'storeCode'];
-                    state.currentActuals = engine.parseTSV(text, req);
+                    state.currentActuals = engine.parseTSV(text, []); 
+                    if (state.currentActuals.length === 0) throw new Error("No data found in pasted report.");
+                    
                     const monthsSet = new Set();
                     state.currentActuals.forEach(r => {
-                        let d = engine.parseDate(r.Date);
-                        if (d) monthsSet.add(`d.getFullYear()-{d.getMonth()}`);
+                        const rawDate = engine.getVal(r, ['date', 'actualdate', 'visitdate']);
+                        let d = engine.parseDate(rawDate);
+                        if (d) monthsSet.add(`${d.getFullYear()}-${d.getMonth()}`);
                     });
-                    if(monthsSet.size === 0) throw new Error("No valid dates found to calculate schedule.");
+                    if(monthsSet.size === 0) throw new Error("No valid dates found in report to calculate schedule.");
 
                     state.expectedPool = [];
                     const client = document.querySelector('input[name="client"]:checked').value;
                     const masterFilter = state.masterData.filter(m => String(m[client]) === '1' || String(m[client]).toLowerCase() === 'true');
                     
                     let conflictsCount = 0;
-                    masterFilter.forEach(m => {
-                        let expDayNr = engine.getDayNumber(m.WeekDay);
-                        let conflict = (m.DayNr && expDayNr > 0 && String(m.DayNr) !== String(expDayNr)) || expDayNr === 0;
-                        monthsSet.forEach(mo => {
-                            const [y, mm] = mo.split('-');
-                            let d = engine.getExpectedDate(Number(y), Number(mm), Number(m.WeekNumber), m.WeekDay);
-                            if(!d) conflict = true;
-                            state.expectedPool.push({ ...m, _ExpectedDateStr: engine.formatDate(d), _hasConflict: conflict });
+                    
+                    monthsSet.forEach(mo => {
+                        const [y, mm] = mo.split('-');
+                        const rYear = Number(y);
+                        const rMonth = Number(mm);
+                        const monthStr = new Date(rYear, rMonth, 1).toLocaleString('en-US', {month: 'long', year: 'numeric'});
+
+                        // Deduplicate Master Data specifically for this reporting month
+                        const dedupedMaster = [];
+                        const seenMaster = new Set();
+                        masterFilter.forEach(m => {
+                            const dateRes = engine.getExpectedDate(rYear, rMonth, m.WeekNumber, m.DayNr, m.WeekDay);
+                            if (dateRes.error && dateRes.error !== 'OUT_OF_PERIOD') {
+                                if (!m._hasLoggedConflict) {
+                                    state.expectedPool.push({ ...m, _ExpectedDateStr: `Invalid (${dateRes.error})`, _hasConflict: true, _conflictReason: dateRes.error });
+                                    conflictsCount++;
+                                    m._hasLoggedConflict = true; 
+                                }
+                            } else if (!dateRes.error && dateRes.date) {
+                                const expKey = `${engine.normalizeText(m.EmployeeName)}_${String(m.AS400StoreCode).trim()}_${engine.formatDate(dateRes.date)}`;
+                                if (!seenMaster.has(expKey)) {
+                                    seenMaster.add(expKey);
+                                    state.expectedPool.push({ ...m, _ExpectedDateStr: engine.formatDate(dateRes.date), _ReportingMonthStr: monthStr, _hasConflict: false });
+                                }
+                            }
                         });
-                        if (conflict) conflictsCount++;
                     });
+                    
+                    masterFilter.forEach(m => delete m._hasLoggedConflict);
 
                     document.getElementById('recon-setup').classList.add('hidden');
                     saveWorkspaceState();
                     document.getElementById('schedule-validation-section').classList.remove('hidden-view');
-                    document.getElementById('sv-conflicts').innerText = conflictsCount > 0 ? `${conflictsCount} issues found` : 'None detected';
+                    document.getElementById('sv-conflicts').innerText = conflictsCount > 0 ? `${conflictsCount} issues found (Excluded from expected metrics)` : 'None detected';
                     
-                    document.getElementById('schedule-validation-tbody').innerHTML = state.expectedPool.slice(0,100).map(e => `
-                        <tr><td class="p-2">e.EmployeeName</td><tdclass="p-2">{e.StoreName}</td><td class="p-2">Wk ${e.WeekNumber} - ${e.WeekDay}</td>
-                        <td class="p-2 font-mono">${e._ExpectedDateStr}</td><td class="p-2 font-bold e.hasConflict?'text-red-500':'text-green-500'">{e._hasConflict?'CONFLICT':'OK'}</td></tr>
+                    const displaySet = state.expectedPool.slice(0, 100).sort((a, b) => (b._hasConflict === true) - (a._hasConflict === true));
+                    document.getElementById('schedule-validation-tbody').innerHTML = displaySet.map(e => `
+                        <tr><td class="p-2">${e.EmployeeName}</td><td class="p-2">${e.StoreName}</td><td class="p-2">Wk ${e.WeekNumber} - D${e.DayNr} (${e.WeekDay})</td>
+                        <td class="p-2 font-bold ${e._hasConflict?'text-red-500':'text-green-500'}">${e._hasConflict? `CONFLICT: ${e._conflictReason}` : `OK: ${e._ExpectedDateStr}`}</td></tr>
                     `).join('');
 
                 } catch (e) { ui.showModal("Error", e.message); }
@@ -1152,42 +1442,295 @@
 
             runReconciliation() {
                 const client = document.querySelector('input[name="client"]:checked').value;
+                const cName = client.replace('IR', '');
                 ui.showToast("Running...", "info");
                 try {
-                    const r = engine.run(state.currentActuals, client, state.expectedPool);
+                    const validExpectedPool = state.expectedPool.filter(e => !e._hasConflict);
+                    
+                    let rYear, rMonth;
+                    if (validExpectedPool.length > 0) {
+                       const [y, m, d] = validExpectedPool[0]._ExpectedDateStr.split('-');
+                       rYear = parseInt(y, 10);
+                       rMonth = parseInt(m, 10) - 1;
+                    }
+                    
+                    const r = engine.run(state.currentActuals, cName, validExpectedPool, rYear, rMonth); 
                     state.lastResults = r;
                     
+                    const compStr = r.expectedCount > 0 ? (r.matched.length / r.expectedCount * 100).toFixed(1) + '%' : 'N/A';
+
                     document.getElementById('metric-expected').innerText = r.expectedCount;
+                    document.getElementById('metric-captured').innerText = r.capturedStoreCodes.size;
                     document.getElementById('metric-matched').innerText = r.matched.length;
-                    document.getElementById('metric-missing').innerText = r.missing.length;
+                    document.getElementById('metric-missing').innerText = r.missing.length + r.wrongDay.length; 
                     document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                     document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                     document.getElementById('metric-review').innerText = r.review.length;
-                    document.getElementById('metric-completion').innerText = r.expectedCount > 0 ? Math.round(((r.matched.length + r.wrongDay.length + r.unexpected.length) / r.expectedCount)*100) + '%' : '0%';
+                    document.getElementById('metric-completion').innerText = compStr;
 
                     document.getElementById('schedule-validation-section').classList.add('hidden-view');
                     document.getElementById('recon-results').classList.remove('hidden-view');
                     ui.switchResultTab('tab-missing');
                     
-                    saveHistory({ client, expected: r.expectedCount, matched: r.matched.length, missing: r.missing.length, unexpected: r.unexpected.length, wrongDay: r.wrongDay.length, review: r.review.length }, r);
+                    saveHistory({ client: cName, expected: r.expectedCount, matched: r.matched.length, missing: r.missing.length, unexpected: r.unexpected.length, wrongDay: r.wrongDay.length, review: r.review.length, compliance: compStr, capturedCount: r.capturedStoreCodes.size }, r);
                 } catch (e) { ui.showModal("Error", e.message); }
             },
 
             exportResults() {
                 if(!state.lastResults) return;
                 let exp = [];
-                const mapR = (t, r) => ({ 'Status': t, 'Reporting Month': r.ReportingMonth, 'Sch. Week': r.WeekNumber, 'Sch. DayNr': r.DayNr, 'Planned Weekday': r.PlannedDay, 'Planned Date': r.PlannedDate, 'Store Code': r.storeCode, 'Store Name': r.storeName, 'Expected Employee': r.ExpectedEmployee, 'Act. Date': r.ActualDate, 'Act. Weekday': r.ActualDay, 'Captured By': r.loginId, 'Categories': r.CategoriesCaptured, 'Reason': r.DiscrepancyReason });
+                const mapR = (r) => ({ 
+                    'Client': r.Client,
+                    'Employee': r.Employee,
+                    'StoreCode': r.StoreCode,
+                    'StoreName': r.StoreName,
+                    'PlannedWeek': r.PlannedWeek,
+                    'PlannedDay': r.PlannedDay,
+                    'PlannedDate': r.PlannedDate,
+                    'Status': r.Status,
+                    'ActualDate': r.ActualDate,
+                    'CapturingLogin': r.CapturingLogin
+                });
                 
-                exp = exp.concat(state.lastResults.missing.map(r => mapR('MISSING', r)));
-                exp = exp.concat(state.lastResults.unexpected.map(r => mapR('UNEXPECTED', r)));
-                exp = exp.concat(state.lastResults.wrongDay.map(r => mapR('CAPTURED, ON WRONG DAY', r)));
-                exp = exp.concat(state.lastResults.review.map(r => mapR('REVIEW', r)));
-                exp = exp.concat(state.lastResults.matched.map(r => mapR('MATCHED', r)));
+                exp = exp.concat(state.lastResults.missing.map(mapR));
+                exp = exp.concat(state.lastResults.wrongDay.map(mapR));
+                exp = exp.concat(state.lastResults.unexpected.map(mapR));
+                exp = exp.concat(state.lastResults.review.map(mapR));
+                exp = exp.concat(state.lastResults.matched.map(mapR));
 
                 const ws = XLSX.utils.json_to_sheet(exp);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Results");
                 XLSX.writeFile(wb, `CallCycle_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
+            },
+
+            generateConsolidatedReport() {
+                if (!state.masterData || state.masterData.length === 0) return ui.showModal("Error", "Please load Master Data first.");
+                const tbfsTxt = document.getElementById('cr-paste-tbfs').value;
+                const rclTxt = document.getElementById('cr-paste-rcl').value;
+                const liptonTxt = document.getElementById('cr-paste-lipton').value;
+                
+                if (!tbfsTxt.trim() && !rclTxt.trim() && !liptonTxt.trim()) {
+                    return ui.showModal("Error", "Please paste at least one client report to consolidate.");
+                }
+
+                const diagEl = document.getElementById('cr-diagnostics');
+                if (diagEl) {
+                    diagEl.innerHTML = '';
+                    diagEl.classList.remove('hidden');
+                }
+                
+                document.getElementById('cr-status-msg').innerText = "Processing consolidated workbook...";
+
+                setTimeout(() => {
+                    try {
+                        const tbfsActuals = tbfsTxt.trim() ? engine.parseTSV(tbfsTxt) : [];
+                        const rclActuals = rclTxt.trim() ? engine.parseTSV(rclTxt) : [];
+                        const liptonActuals = liptonTxt.trim() ? engine.parseTSV(liptonTxt) : [];
+
+                        let rYear = null, rMonth = null;
+                        const monthPickerVal = document.getElementById('cr-month-selector')?.value;
+                        
+                        if (monthPickerVal) {
+                            const parts = monthPickerVal.split('-');
+                            rYear = parseInt(parts[0], 10);
+                            rMonth = parseInt(parts[1], 10) - 1; 
+                        } else {
+                            const findDate = (arr) => {
+                                for (let row of arr) {
+                                    const d = engine.parseDate(engine.getVal(row, ['date', 'actualdate', 'visitdate']));
+                                    if (d) return { y: d.getFullYear(), m: d.getMonth() };
+                                }
+                                return null;
+                            };
+                            const detected = findDate(tbfsActuals) || findDate(rclActuals) || findDate(liptonActuals);
+                            if (!detected) throw new Error("No month selected and could not detect valid dates in the reports.");
+                            rYear = detected.y; rMonth = detected.m;
+                        }
+                        const monthStr = new Date(rYear, rMonth, 1).toLocaleString('en-US', {month: 'long', year: 'numeric'});
+                        const checkedLipton = Array.from(document.querySelectorAll('.cr-lipton-cb:checked')).map(cb => cb.value);
+
+                        const expectedByClient = { TBFS: [], RCL: [], Lipton: [] };
+                        let scheduleErrorsDropped = 0;
+                        let scheduleErrorSample = [];
+                        
+                        // Pass 1: Deduplicate and Filter Master Data
+                        const dedupSets = { TBFS: new Set(), RCL: new Set(), Lipton: new Set() };
+
+                        state.masterData.forEach(m => {
+                            const dateRes = engine.getExpectedDate(rYear, rMonth, m.WeekNumber, m.DayNr, m.WeekDay);
+                            
+                            if (dateRes.error) {
+                                if (dateRes.error !== 'OUT_OF_PERIOD') {
+                                    scheduleErrorsDropped++;
+                                    if (scheduleErrorSample.length < 5) scheduleErrorSample.push(`CONFLICT: Emp:${m.EmployeeName} | Store:${m.AS400StoreCode} | Reason:${dateRes.error}`);
+                                }
+                                return; 
+                            }
+
+                            const code = m.AS400StoreCode ? String(m.AS400StoreCode).trim() : null;
+                            if (!code) return;
+
+                            const pushExp = (client, flag) => {
+                                if (String(flag) === '1' || String(flag).toLowerCase() === 'true') {
+                                    if (client === 'Lipton') {
+                                        const ret = this.classifyRetailer(m.StoreName);
+                                        if (!checkedLipton.includes(ret) && ret !== "Unknown") return;
+                                    }
+                                    const expKey = `${client}_${engine.normalizeText(m.EmployeeName)}_${code}_${engine.formatDate(dateRes.date)}`;
+                                    if (!dedupSets[client].has(expKey)) {
+                                        dedupSets[client].add(expKey);
+                                        expectedByClient[client].push({ ...m, _ExpectedDateStr: engine.formatDate(dateRes.date), _ReportingMonthStr: monthStr });
+                                    }
+                                }
+                            };
+                            
+                            pushExp('TBFS', m.TBFSIR); 
+                            pushExp('RCL', m.RCLIR); 
+                            pushExp('Lipton', m.LiptonIR);
+                        });
+
+                        const tbfsResults = engine.run(tbfsActuals, 'TBFS', expectedByClient.TBFS, rYear, rMonth);
+                        const rclResults = engine.run(rclActuals, 'RCL', expectedByClient.RCL, rYear, rMonth);
+                        const liptonResults = engine.run(liptonActuals, 'Lipton', expectedByClient.Lipton, rYear, rMonth);
+                        
+                        const summaryTable = [];
+                        const capturerTabsData = {};
+                        
+                        const allMatched = [...tbfsResults.matched, ...rclResults.matched, ...liptonResults.matched];
+                        const allMissing = [...tbfsResults.missing, ...rclResults.missing, ...liptonResults.missing];
+
+                        window.allKnownAuditorsCache.sort().forEach(emp => {
+                            const empNorm = engine.normalizeText(emp);
+                            const filterByEmp = (arr) => arr.filter(r => engine.normalizeText(r.Employee) === empNorm);
+                            
+                            const empMatched = filterByEmp(allMatched);
+                            const empMissing = filterByEmp(allMissing);
+                            
+                            const exportTabOutput = [];
+                            let totalPlanned = 0;
+                            let totalCaptured = 0;
+                            let totalCompliant = 0;
+
+                            ['TBFS', 'RCL', 'Lipton'].forEach(cName => {
+                                const matchedC = empMatched.filter(r => r.Client === cName);
+                                const missingC = empMissing.filter(r => r.Client === cName);
+                                
+                                let capSet;
+                                if (cName === 'TBFS') capSet = tbfsResults.totalCapturedByEmployee[empNorm] || new Set();
+                                else if (cName === 'RCL') capSet = rclResults.totalCapturedByEmployee[empNorm] || new Set();
+                                else capSet = liptonResults.totalCapturedByEmployee[empNorm] || new Set();
+                                const capCount = capSet.size;
+
+                                const pCount = expectedByClient[cName].filter(e => engine.normalizeText(e.EmployeeName) === empNorm).length;
+                                const cCount = matchedC.length; 
+
+                                totalPlanned += pCount;
+                                totalCaptured += capCount;
+                                totalCompliant += cCount;
+
+                                const compStr = pCount > 0 ? `${(cCount / pCount * 100).toFixed(1)}%` : "N/A";
+
+                                summaryTable.push({
+                                    "Auditor Name": emp,
+                                    "Client": cName,
+                                    "Planned Visits": pCount,
+                                    "Total Captured Stores": capCount,
+                                    "Compliance %": compStr
+                                });
+                                
+                                exportTabOutput.push(...missingC);
+                            });
+                            
+                            const totalCompStr = totalPlanned > 0 ? `${(totalCompliant / totalPlanned * 100).toFixed(1)}%` : "N/A";
+                            
+                            summaryTable.push({
+                                "Auditor Name": `${emp} - TOTAL`,
+                                "Client": "-",
+                                "Planned Visits": totalPlanned,
+                                "Total Captured Stores": totalCaptured,
+                                "Compliance %": totalCompStr
+                            });
+                            summaryTable.push({}); 
+
+                            capturerTabsData[emp] = exportTabOutput;
+                        });
+
+                        if (diagEl) {
+                            let diagOutput = `[SYSTEM DIAGNOSTICS: Strict Period Enforced -> ${rYear}-${String(rMonth + 1).padStart(2, '0')}]\n\n`;
+                            diagOutput += `[MASTER SCHEDULE] Invalid Date Combos Dropped: ${scheduleErrorsDropped}\n`;
+                            if (scheduleErrorSample.length > 0) {
+                                diagOutput += `       SAMPLE ERRORS:\n         - ${scheduleErrorSample.join('\n         - ')}\n`;
+                            }
+                            diagOutput += `\n`;
+                            
+                            const dOut = (name, res) => {
+                                diagOutput += `[${name} RECONCILIATION DIAGNOSTICS]\n`;
+                                diagOutput += `  Raw Input Rows Read: ${res._diag.rawProcessed}\n`;
+                                diagOutput += `  Rows Valid inside Target Month: ${res._diag.validDatesInMonth}\n`;
+                                diagOutput += `  Rows Successfully Mapped to Auditor: ${res._diag.mappedCount}\n`;
+                                diagOutput += `  Rows UNMAPPED (Identity Void): ${res._diag.unmappedCount}\n`;
+                                if (res._diag.unmappedSamples && res._diag.unmappedSamples.length > 0) {
+                                    diagOutput += `    > Top Unmapped IDs (Add to Map): ${res._diag.unmappedSamples.join(', ')}\n`;
+                                }
+                                diagOutput += `\n  MATCHING BREAKDOWN:\n`;
+                                diagOutput += `    - Planned Visits (Master): ${res.expectedCount}\n`;
+                                diagOutput += `    - Compliant (Exact Store+Emp+Date): ${res.matched.length}\n`;
+                                diagOutput += `    - Wrong Day Captures: ${res.wrongDay.length}\n`;
+                                diagOutput += `\n`;
+                            };
+                            dOut('TBFS', tbfsResults);
+                            dOut('RCL', rclResults);
+                            dOut('Lipton', liptonResults);
+                            diagEl.innerText = diagOutput;
+                            diagEl.classList.remove('hidden');
+                        }
+
+                        const wb = XLSX.utils.book_new();
+                        const wsSummary = XLSX.utils.json_to_sheet(summaryTable);
+                        XLSX.utils.book_append_sheet(wb, wsSummary, "Consolidated Summary");
+
+                        const usedSheetNames = new Set(["Consolidated Summary"]);
+                        Object.entries(capturerTabsData).forEach(([capturer, exportList]) => {
+                            let sheetTitle = capturer.substring(0, 31).replace(/[\\/?*[\]:]/g, '').trim();
+                            if (!sheetTitle) sheetTitle = "Auditor";
+                            
+                            let uniqueTitle = sheetTitle;
+                            let counter = 1;
+                            while (usedSheetNames.has(uniqueTitle.toLowerCase())) {
+                                uniqueTitle = `${sheetTitle.substring(0, 28)}_${counter++}`;
+                            }
+                            usedSheetNames.add(uniqueTitle.toLowerCase());
+
+                            const sheetData = exportList.length > 0 
+                                ? exportList.map(r => ({ 
+                                    'Client': r.Client, 
+                                    'Employee': r.Employee, 
+                                    'StoreCode': r.StoreCode, 
+                                    'StoreName': r.StoreName, 
+                                    'PlannedWeek': r.PlannedWeek, 
+                                    'PlannedDay': r.PlannedDay, 
+                                    'PlannedDate': r.PlannedDate, 
+                                    'Status': r.Status, 
+                                    'ActualDate': r.ActualDate, 
+                                    'CapturingLogin': r.CapturingLogin 
+                                  }))
+                                : [{ Client: "-", Employee: capturer, StoreCode: "-", StoreName: "-", PlannedWeek: "-", PlannedDay: "-", PlannedDate: "-", Status: "No missed stores - 100% compliant!" }];
+                            
+                            const ws = XLSX.utils.json_to_sheet(sheetData);
+                            XLSX.utils.book_append_sheet(wb, ws, uniqueTitle);
+                        });
+
+                        document.getElementById('cr-status-msg').innerText = `Processed ${rYear}-${String(rMonth + 1).padStart(2, '0')}. Diagnostics generated.`;
+                        XLSX.writeFile(wb, `Consolidated_IR_Report_${rYear}_${String(rMonth + 1).padStart(2, '0')}.xlsx`);
+                        ui.showToast("Workbook generated successfully.", "success");
+
+                    } catch (e) {
+                        console.error(e);
+                        document.getElementById('cr-status-msg').innerText = "Generation failed.";
+                        ui.showModal("Error Generating Report", e.message);
+                    }
+                }, 100);
             }
         };
 
@@ -1195,5 +1738,3 @@
     </script>
 </body>
 </html>
-
-
