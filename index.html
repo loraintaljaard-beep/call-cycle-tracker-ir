@@ -946,42 +946,52 @@
                     diag.dateRangeMsg = `${this.formatDate(new Date(minTime))} to ${this.formatDate(new Date(maxTime))}`;
                 }
                 
-                // Pass 1: EXACT MATCH (Compliant Stores)
+                // PERFORMANCE OPTIMIZATION: Build O(1) Lookup Maps to prevent UI freezing
+                const exactCapMap = new Map();
+                const looseCapMap = new Map();
+
+                validCaptures.forEach(c => {
+                    const normEmp = this.normalizeText(c.mappedEmpName);
+                    const exactKey = `${normEmp}_${c.storeCode}_${c.actualDate}`;
+                    exactCapMap.set(exactKey, c);
+
+                    const looseKey = `${normEmp}_${c.storeCode}`;
+                    if (!looseCapMap.has(looseKey)) looseCapMap.set(looseKey, []);
+                    looseCapMap.get(looseKey).push(c);
+                });
+
+                // Pass 1: EXACT MATCH (Compliant Stores) - O(N) Lookup
                 uniqueExpected.forEach(exp => {
                     const expStore = String(exp.AS400StoreCode).trim();
                     const expDate = exp._ExpectedDateStr;
                     const expEmp = this.normalizeText(exp.EmployeeName);
                     
-                    const match = validCaptures.find(c => 
-                        !c.used &&
-                        c.storeCode === expStore &&
-                        c.actualDate === expDate &&
-                        this.normalizeText(c.mappedEmpName) === expEmp
-                    );
+                    const exactKey = `${expEmp}_${expStore}_${expDate}`;
+                    const match = exactCapMap.get(exactKey);
                     
-                    if (match) {
+                    if (match && !match.used) {
                         match.used = true;
                         exp._matchedCapture = match;
                         exp._matchType = 'EXACT';
                     }
                 });
                 
-                // Pass 2: WRONG DAY MATCH
+                // Pass 2: WRONG DAY MATCH - O(N) Lookup
                 uniqueExpected.forEach(exp => {
                     if (exp._matchedCapture) return;
                     const expStore = String(exp.AS400StoreCode).trim();
                     const expEmp = this.normalizeText(exp.EmployeeName);
                     
-                    const match = validCaptures.find(c => 
-                        !c.used &&
-                        c.storeCode === expStore &&
-                        this.normalizeText(c.mappedEmpName) === expEmp
-                    );
+                    const looseKey = `${expEmp}_${expStore}`;
+                    const matches = looseCapMap.get(looseKey);
                     
-                    if (match) {
-                        match.used = true;
-                        exp._matchedCapture = match;
-                        exp._matchType = 'WRONG_DAY';
+                    if (matches) {
+                        const match = matches.find(c => !c.used);
+                        if (match) {
+                            match.used = true;
+                            exp._matchedCapture = match;
+                            exp._matchType = 'WRONG_DAY';
+                        }
                     }
                 });
                 
