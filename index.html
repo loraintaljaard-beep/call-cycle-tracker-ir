@@ -159,7 +159,7 @@
                                 <label class="block text-sm font-medium text-slate-700">2. Paste IR Image Report (Excel / TSV)</label>
                                 <button onclick="app.clearWorkspaceData()" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-2 py-1 bg-red-50 border border-red-200 hover:bg-red-100 rounded transition-colors">Clear Report</button>
                             </div>
-                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: Date, loginId/userid, storeCode, storeName..." style="min-height: 150px;"></textarea>
+                            <textarea id="paste-actuals" class="flex-1 w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Paste columns including: ticketNo, Date, userid, loginId, storeid, storeCode, storeName, Headline Category..." style="min-height: 150px;"></textarea>
                             <div class="mt-4 flex justify-end">
                                 <button onclick="app.processPastedActuals()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -223,36 +223,36 @@
 
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Unique scheduled visits in reporting month">Planned</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Planned Visits</p>
                             <p id="metric-expected" class="text-2xl font-bold text-slate-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-b-4 border-b-teal-500">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Total unique store codes found in IR reports">Total Captured</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Total Captured</p>
                             <p id="metric-captured" class="text-2xl font-bold text-teal-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched to exact store, auditor, and planned day">Compliant</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Compliant (Present)</p>
                             <p id="metric-matched" class="text-2xl font-bold text-green-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Expected - Compliant (Includes Missing and Wrong Day)">Outstanding</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Outstanding (Missed)</p>
                             <p id="metric-missing" class="text-2xl font-bold text-red-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Stores parsed in IR but not on call cycle">Unexpected</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Unexpected</p>
                             <p id="metric-unexpected" class="text-2xl font-bold text-orange-500 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Matched store/auditor but captured on wrong day">Wrong Day</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Captured, on wrong day</p>
                             <p id="metric-wrongday" class="text-2xl font-bold text-green-800 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="Missing invalid dates or unmapped IDs">Needs Review</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Needs Review</p>
                             <p id="metric-review" class="text-2xl font-bold text-purple-600 mt-1">0</p>
                         </div>
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider" title="(Total Captured / Planned) * 100">Compliance %</p>
-                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0.0%</p>
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Compliance %</p>
+                            <p id="metric-completion" class="text-2xl font-bold text-blue-600 mt-1">0%</p>
                         </div>
                     </div>
 
@@ -262,7 +262,7 @@
                             <button onclick="ui.switchResultTab('tab-unexpected')" id="btn-tab-unexpected" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Unexpected Captures</button>
                             <button onclick="ui.switchResultTab('tab-wrongday')" id="btn-tab-wrongday" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Captured, on wrong day</button>
                             <button onclick="ui.switchResultTab('tab-review')" id="btn-tab-review" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Needs Review</button>
-                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Compliant Captures</button>
+                            <button onclick="ui.switchResultTab('tab-matched')" id="btn-tab-matched" class="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">Matched Captures</button>
                             <div class="flex-1"></div>
                             <button onclick="app.exportResults()" class="self-center mb-1 bg-slate-800 text-white px-3 py-1.5 text-xs rounded shadow hover:bg-slate-700 flex items-center">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -804,8 +804,14 @@
                     validDatesInMonth: 0,
                     mappedCount: 0,
                     unmappedCount: 0,
-                    unmappedSamples: []
+                    unmappedSamples: [],
+                    minTime: Infinity,
+                    maxTime: -Infinity,
+                    dateRangeMsg: ""
                 };
+
+                let minTime = Infinity;
+                let maxTime = -Infinity;
 
                 // Deduplicate Expected Pool by Unique Scheduled Visit (Client + Employee + StoreCode + PlannedDate)
                 const uniqueExpected = [];
@@ -832,9 +838,17 @@
                     const parsedDate = this.parseDate(rawDate);
                     
                     if (reportingYear !== undefined && reportingMonth !== undefined) {
-                        if (parsedDate && (parsedDate.getFullYear() !== reportingYear || parsedDate.getMonth() !== reportingMonth)) {
-                            return; 
+                        if (parsedDate && parsedDate.getFullYear() === reportingYear && parsedDate.getMonth() === reportingMonth) {
+                            const t = parsedDate.getTime();
+                            if (t < minTime) minTime = t;
+                            if (t > maxTime) maxTime = t;
+                        } else {
+                            return; // Out of period explicitly requested / excluded
                         }
+                    } else if (parsedDate) {
+                        const t = parsedDate.getTime();
+                        if (t < minTime) minTime = t;
+                        if (t > maxTime) maxTime = t;
                     }
 
                     const actualDateStr = parsedDate ? this.formatDate(parsedDate) : null;
@@ -925,6 +939,12 @@
                         });
                     }
                 });
+
+                if (minTime === Infinity) {
+                    diag.dateRangeMsg = "No valid report dates found in the selected reporting period. Valid report dates are required to generate the date-restricted missed-store report.";
+                } else {
+                    diag.dateRangeMsg = `${this.formatDate(new Date(minTime))} to ${this.formatDate(new Date(maxTime))}`;
+                }
                 
                 // Pass 1: EXACT MATCH (Compliant Stores)
                 uniqueExpected.forEach(exp => {
@@ -978,7 +998,12 @@
                     };
 
                     if (!exp._matchedCapture) {
-                        results.missing.push({ ...baseRec, Status: 'OUTSTANDING (MISSED)', ActualDate: '-', CapturingLogin: '-' });
+                        const expDateObj = this.parseDate(exp._ExpectedDateStr);
+                        const expTime = expDateObj ? expDateObj.getTime() : null;
+                        // RESTRICT MISSED VISITS TO REPORT DATE BOUNDS
+                        if (minTime !== Infinity && expTime !== null && expTime >= minTime && expTime <= maxTime) {
+                            results.missing.push({ ...baseRec, Status: 'OUTSTANDING (MISSED)', ActualDate: '-', CapturingLogin: '-' });
+                        }
                     } else {
                         const act = exp._matchedCapture;
                         const rec = { ...baseRec, Status: '', ActualDate: act.actualDate, CapturingLogin: act.loginId };
@@ -1245,7 +1270,7 @@
                             <div>Planned: <span class="font-bold">${h.expected}</span></div>
                             <div class="text-teal-600">Total Cap: <span class="font-bold">${h.capturedCount || 0}</span></div>
                             <div class="text-green-600">Compliant: <span class="font-bold">${h.matched}</span></div>
-                            <div class="text-red-600">Outstanding: <span class="font-bold">${h.missing + h.wrongDay}</span></div>
+                            <div class="text-red-600">Outstanding: <span class="font-bold">${h.missing}</span></div>
                             <div class="text-blue-600">Compliance: <span class="font-bold">${h.compliance}</span></div>
                         </div>
                     </div>`;
@@ -1304,7 +1329,7 @@
                 document.getElementById('metric-expected').innerText = run.expected;
                 document.getElementById('metric-captured').innerText = run.capturedCount || r.capturedStoreCodes?.size || 0;
                 document.getElementById('metric-matched').innerText = r.matched.length;
-                document.getElementById('metric-missing').innerText = r.expectedCount - r.matched.length;
+                document.getElementById('metric-missing').innerText = r.missing.length;
                 document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                 document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                 document.getElementById('metric-review').innerText = r.review.length;
@@ -1472,7 +1497,7 @@
                     document.getElementById('metric-expected').innerText = r.expectedCount;
                     document.getElementById('metric-captured').innerText = r.capturedStoreCodes.size;
                     document.getElementById('metric-matched').innerText = r.matched.length;
-                    document.getElementById('metric-missing').innerText = r.expectedCount - r.matched.length; 
+                    document.getElementById('metric-missing').innerText = r.missing.length; 
                     document.getElementById('metric-unexpected').innerText = r.unexpected.length;
                     document.getElementById('metric-wrongday').innerText = r.wrongDay.length;
                     document.getElementById('metric-review').innerText = r.review.length;
@@ -1621,6 +1646,7 @@
                             let totalPlanned = 0;
                             let totalCaptured = 0;
                             let totalCompliant = 0;
+                            let totalOutstanding = 0;
 
                             ['TBFS', 'RCL', 'Lipton'].forEach(cName => {
                                 const matchedC = empMatched.filter(r => r.Client === cName);
@@ -1634,12 +1660,13 @@
 
                                 const pCount = expectedByClient[cName].filter(e => engine.normalizeText(e.EmployeeName) === empNorm).length;
                                 const cCount = matchedC.length; 
+                                const outstandingCount = missingC.length;
 
                                 totalPlanned += pCount;
                                 totalCaptured += capCount;
                                 totalCompliant += cCount;
+                                totalOutstanding += outstandingCount;
 
-                                const outstandingCount = pCount - cCount;
                                 const compStr = pCount > 0 ? (capCount / pCount * 100).toFixed(1) + '%' : '0.0%';
 
                                 summaryTable.push({
@@ -1654,7 +1681,6 @@
                                 exportTabOutput.push(...missingC);
                             });
                             
-                            const totalOutstanding = totalPlanned - totalCompliant;
                             const totalCompStr = totalPlanned > 0 ? (totalCaptured / totalPlanned * 100).toFixed(1) + '%' : '0.0%';
                             
                             summaryTable.push({
@@ -1680,6 +1706,7 @@
                             
                             const dOut = (name, res) => {
                                 diagOutput += `[${name} RECONCILIATION DIAGNOSTICS]\n`;
+                                diagOutput += `  Report Date Coverage: ${res._diag.dateRangeMsg}\n`;
                                 diagOutput += `  Raw Input Rows Read: ${res._diag.rawProcessed}\n`;
                                 diagOutput += `  Rows Valid inside Target Month: ${res._diag.validDatesInMonth}\n`;
                                 diagOutput += `  Rows Successfully Mapped to Auditor: ${res._diag.mappedCount}\n`;
